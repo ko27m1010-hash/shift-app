@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>GAS デプロイ手順ガイド</title>
+<style>
+:root{
+  --gd:#1B4332;--gm:#2D6A4F;--gg:#40916C;--gl:#74C69D;--gp:#D8F3DC;--gb:#F0F7F4;
+  --gold:#D4A017;--red:#C0392B;--orange:#E67E22;--blue:#0077B6;
+  --fn:'Noto Sans JP','Hiragino Kaku Gothic ProN','メイリオ',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--fn);background:#F5F5F0;color:#1A1A1A;line-height:1.6}
+.cover{background:linear-gradient(135deg,var(--gd),var(--gm));padding:40px 24px 32px;text-align:center;color:#fff}
+.cover .logo{font-size:3rem;margin-bottom:10px}
+.cover h1{font-size:1.4rem;font-weight:900;margin-bottom:6px}
+.cover p{font-size:.85rem;color:#B7E4C7;line-height:1.7}
+.badge-row{display:flex;justify-content:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+.badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:4px 14px;font-size:.72rem;color:#fff}
+.content{max-width:680px;margin:0 auto;padding:24px 16px}
+.section{margin-bottom:32px}
+.section-title{font-size:1.05rem;font-weight:900;color:var(--gd);margin-bottom:14px;display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:2px solid var(--gp)}
+.step-card{background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.07);margin-bottom:14px;overflow:hidden}
+.step-head{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--gd);color:#fff}
+.step-num{width:32px;height:32px;background:var(--gold);color:#1B4332;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:900;flex-shrink:0}
+.step-head h3{font-size:.92rem;font-weight:800}
+.step-body{padding:15px 17px}
+.step-body p{font-size:.87rem;color:#333;margin-bottom:8px;line-height:1.7}
+.step-body ul{padding-left:20px;margin-bottom:8px}
+.step-body ul li{font-size:.85rem;color:#333;margin-bottom:5px;line-height:1.6}
+.step-body ol{padding-left:20px;margin-bottom:8px}
+.step-body ol li{font-size:.85rem;color:#333;margin-bottom:7px;line-height:1.6}
+.img-placeholder{background:var(--gb);border:2px dashed var(--gl);border-radius:10px;padding:20px;text-align:center;color:var(--gg);font-size:.82rem;margin:10px 0}
+.img-placeholder .pi-icon{font-size:2.5rem;margin-bottom:6px}
+.code-box{background:#1e1e1e;color:#d4d4d4;border-radius:9px;padding:12px 14px;font-family:monospace;font-size:.78rem;line-height:1.7;margin:10px 0;overflow-x:auto;white-space:pre-wrap;word-break:break-all}
+.code-box .kw{color:#569cd6} .code-box .str{color:#ce9178} .code-box .cmt{color:#6a9955}
+.tip{background:#FFF8E7;border-left:4px solid var(--gold);border-radius:0 9px 9px 0;padding:10px 14px;margin:10px 0}
+.tip .tip-title{font-size:.78rem;font-weight:700;color:#7A5200;margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.tip p{font-size:.82rem;color:#5A3800;line-height:1.6}
+.warn{background:#FFF0F0;border-left:4px solid var(--red);border-radius:0 9px 9px 0;padding:10px 14px;margin:10px 0}
+.warn .warn-title{font-size:.78rem;font-weight:700;color:var(--red);margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.warn p{font-size:.82rem;color:#8B0000;line-height:1.6}
+.highlight{background:var(--gp);border-left:4px solid var(--gg);border-radius:0 9px 9px 0;padding:10px 14px;margin:10px 0}
+.highlight p{font-size:.84rem;color:var(--gd);line-height:1.7}
+.screen-mock{background:#fff;border:2px solid #ddd;border-radius:12px;overflow:hidden;margin:12px 0;box-shadow:0 3px 10px rgba(0,0,0,.1)}
+.mock-bar{background:#f1f3f4;padding:8px 14px;border-bottom:1px solid #ddd;display:flex;align-items:center;gap:10px}
+.mock-dot{width:11px;height:11px;border-radius:50%;background:#ddd}
+.mock-dot.r{background:#FF5F56} .mock-dot.y{background:#FFBD2E} .mock-dot.g{background:#27C93F}
+.mock-url{background:#fff;border:1px solid #ddd;border-radius:6px;padding:4px 12px;flex:1;font-size:.72rem;color:#666;font-family:monospace}
+.mock-content{padding:16px}
+.mock-content .mc-text{font-size:.78rem;color:#333;line-height:1.7;margin-bottom:8px}
+.mock-btn{display:inline-block;padding:6px 16px;background:var(--gm);color:#fff;border-radius:6px;font-size:.75rem;font-weight:700;margin:3px}
+.mock-btn.blue{background:var(--blue)}
+.mock-btn.gray{background:#666}
+.step-link{display:inline-flex;align-items:center;gap:5px;background:var(--gm);color:#fff;border-radius:8px;padding:8px 16px;font-size:.82rem;font-weight:700;text-decoration:none;margin-top:8px}
+.divider{text-align:center;color:#bbb;font-size:.8rem;margin:8px 0;position:relative}
+.divider::before,.divider::after{content:'';position:absolute;top:50%;width:40%;height:1px;background:#e0e0e0}
+.divider::before{left:0} .divider::after{right:0}
+.summary-box{background:linear-gradient(135deg,var(--gd),var(--gm));color:#fff;border-radius:14px;padding:22px 20px;margin-bottom:24px}
+.summary-box h3{font-size:1rem;font-weight:900;margin-bottom:14px;color:#fff;display:flex;align-items:center;gap:8px}
+.summary-step{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+.ss-num{width:26px;height:26px;background:var(--gold);color:#1B4332;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:900;flex-shrink:0;margin-top:1px}
+.ss-text{font-size:.83rem;color:#B7E4C7;line-height:1.5}
+.ss-text strong{color:#fff}
+@media print{body{font-size:11pt}.content{max-width:100%}.step-card{break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="logo">⚙️</div>
+  <h1>GAS デプロイ手順ガイド</h1>
+  <p>農業パート シフト管理システム<br>Google スプレッドシート連携の設定手順（管理者向け）</p>
+  <div class="badge-row">
+    <span class="badge">📱 所要時間：約10分</span>
+    <span class="badge">💻 PC推奨</span>
+    <span class="badge">🆓 完全無料</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ── 全体フロー ── -->
+  <div class="summary-box">
+    <h3>🗺️ 作業の全体像（4ステップ）</h3>
+    <div class="summary-step">
+      <div class="ss-num">1</div>
+      <div class="ss-text"><strong>Googleスプレッドシートを新規作成</strong><br>シフトデータを保存するシートを用意</div>
+    </div>
+    <div class="summary-step">
+      <div class="ss-num">2</div>
+      <div class="ss-text"><strong>Apps Scriptにスクリプトを貼り付け</strong><br>GAS_Webhook受信スクリプト.jsの内容をコピー＆ペースト</div>
+    </div>
+    <div class="summary-step">
+      <div class="ss-num">3</div>
+      <div class="ss-text"><strong>ウェブアプリとしてデプロイ</strong><br>URLを取得してアプリに設定</div>
+    </div>
+    <div class="summary-step">
+      <div class="ss-num">4</div>
+      <div class="ss-text"><strong>アプリに設定して完了！</strong><br>管理者設定タブでURLを1回入力するだけ</div>
+    </div>
+  </div>
+
+  <!-- ── STEP 1 ── -->
+  <div class="section">
+    <div class="section-title">📊 STEP 1：Googleスプレッドシートを作成</div>
+
+    <div class="step-card">
+      <div class="step-head">
+        <div class="step-num">1</div>
+        <h3>Google ドライブを開く</h3>
+      </div>
+      <div class="step-body">
+        <p>パソコンのブラウザで <strong>drive.google.com</strong> を開きます。</p>
+        <div class="screen-mock">
+          <div class="mock-bar">
+            <div class="mock-dot r"></div><div class="mock-dot y"></div><div class="mock-dot g"></div>
+            <div class="mock-url">drive.google.com</div>
+          </div>
+          <div class="mock-content">
+            <div class="mc-text">🗂️ マイドライブ画面が表示されます</div>
+            <div class="mc-text">左上の <span style="background:#1a73e8;color:#fff;padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:700">＋ 新規</span> ボタンをクリック</div>
+          </div>
+        </div>
+        <p>「＋ 新規」→「Googleスプレッドシート」→「空白のスプレッドシート」を選択します。</p>
+        <div class="tip">
+          <div class="tip-title">💡 ヒント</div>
+          <p>既存のスプレッドシートを使う場合もOKです。シフトデータ用に新しいシートを1枚追加してください。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-head">
+        <div class="step-num">2</div>
+        <h3>スプレッドシートに名前をつける</h3>
+      </div>
+      <div class="step-body">
+        <p>左上の「無題のスプレッドシート」をクリックして、わかりやすい名前に変更します。</p>
+        <div class="img-placeholder">
+          <div class="pi-icon">📋</div>
+          <div>例）「シフト管理_農業パート」</div>
+        </div>
+        <div class="tip">
+          <div class="tip-title">💡 おすすめの名前</div>
+          <p>「シフト管理_農業パート_2026」など、年を入れておくと後で探しやすいです。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 2 ── -->
+  <div class="section">
+    <div class="section-title">📝 STEP 2：Apps Scriptにスクリプトを設定</div>
+
+    <div class="step-card">
+      <div class="step-head">
+        <div class="step-num">3</div>
+        <h3>Apps Script エディタを開く</h3>
+      </div>
+      <div class="step-body">
+        <p>スプレッドシート上部のメニューから操作します。</p>
+        <ol>
+          <li>メニューバーの「<strong>拡張機能</strong>」をクリック</li>
+          <li>「<strong>Apps Script</strong>」をクリック</li>
+        </ol>
+        <div class="screen-mock">
+          <div class="mock-bar">
+            <div class="mock-dot r"></div><div class="mock-dot y"></div><div class="mock-dot g"></div>
+            <div class="mock-url">script.google.com/...</div>
+          </div>
+          <div class="mock-content">
+            <div class="mc-text">🖥️ Apps Scriptエディタが<strong>別タブで開きます</strong></div>
+            <div class="mc-text" style="color:#666;font-size:.75rem">「function myFunction() { }」というコードが最初から書いてあります</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-head">
+        <div class="step-num">4</div>
+        <h3>スクリプトをコピー＆ペースト</h3>
+      </div>
+      <div class="step-body">
+        <p>配布ファイルに含まれる「<strong>GAS_Webhook受信スクリプト.js</strong>」をテキストエディタで開きます。</p>
+        <ol>
+          <li>ファイル全体を選択（Ctrl+A / Command+A）してコピー</li>
+          <li>Apps Scriptエディタの既存コードを<strong>全て削除</strong>する</li>
+          <li>コピーしたコードを貼り付け（Ctrl+V / Command+V）</li>
+        </ol>
+        <div class="warn">
+          <div class="warn-title">⚠️ 重要</div>
+          <p>既存の「function myFunction() { }」は<strong>必ず削除</strong>してから貼り付けてください。2重になるとエラーになります。</p>
+        </div>
+        <div class="code-box"><span class="cmt">// このようなコードが貼り付けられればOK</span>
+<span class="kw">const</span> SHEET_NAME = <span class="str">'シフト希望'</span>;
+
+<span class="kw">function</span> doPost(e) {
+  <span class="kw">const</span> data = JSON.parse(e.postData.contents);
+  <span class="cmt">// スプレッドシートに保存する処理</span>
+  ...
+}</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-head">
+        <div class="step-num">5</div>
+        <h3>スクリプトを保存する</h3>
+      </div>
+      <div class="step-body">
+        <p>フロッピーディスクアイコン（💾）または <strong>Ctrl+S（Command+S）</strong> で保存します。</p>
+        <div class="highlight">
+          <p>✅ 保存すると画面上部に「最終保存：〇〇分前」と表示されます。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 3 ── -->
+  <div class="section">
+    <div class="section-title">🚀 STEP 3：ウェブアプリとしてデプロイ</div>
+
+    <div class="step-card">
+      <div class="step-head">
+        <div class="step-num">6</div>
+        <h3>デプロイメニューを開く</h3>
+      </div>
+      <div class="step-body">
+        <p>Apps Scriptエディタの右上にある「<strong>デプロイ</strong>」ボタンをクリックします。</p>
+        <div class="screen-mock">
+          <div class="mock-bar">
+            <div class="mock-dot r"></div><div class="mock-dot y"></div><div class="mock-dot g"></div>
+            <div class="mock-url">script.google.com/macros/...</div>
+          </div>
+          <div class="mock-content">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+              <span class="mock-btn">デプロイ ▼</span>
+            </div>
+            <div class="mc-text" style="font-size:.75rem;color:#666">ドロップダウンメニューが表示されます↓</div>
+            <div style="background:#fff;border:1px solid #ddd;border-radius:6px;padding:8px 12px;margin-top:6px">
+              <div style="font-size:.78rem;padding:4px 0;border-bottom:1px solid #eee;cursor:pointer">➕ 新しいデプロイ</div>
+              <div style="font-size:.78rem;padding:4px 0;color:#999">デプロイを管理</div>
+            </div>
+          </div>
+        </div>
+        <p>「<strong>➕ 新しいデプロイ</strong>」をクリックします。</p>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-head">
+        <div class="step-num">7</div>
+        <h3>デプロイタイプを設定する</h3>
+      </div>
+      <div class="step-body">
+        <p>「新しいデプロイ」ダイアログが開きます。以下の通りに設定してください。</p>
+        <div class="img-placeholder">
+          <div class="pi-icon">⚙️</div>
+          <div style="text-align:left;display:inline-block">
+            <div style="margin-bottom:6px"><strong>種類の選択</strong>（歯車アイコン）をクリック</div>
+            <div>→「<strong>ウェブアプリ</strong>」を選択</div>
+          </div>
+        </div>
+        <ol>
+          <li>「<strong>説明</strong>」欄に「シフト管理アプリ」と入力（任意）</li>
+          <li>「<strong>次のユーザーとして実行</strong>」→ 「<strong>自分（あなたのメールアドレス）</strong>」を選択</li>
+          <li>「<strong>アクセスできるユーザー</strong>」→ 「<strong>全員</strong>」を選択 ⭐</li>
+        </ol>
+        <div class="warn">
+          <div class="warn-title">⚠️ 「全員」を必ず選択してください</div>
+          <p>「全員」にしないとパートスタッフがフォームを送信できません。スプレッドシートに書き込む権限は自分のアカウントで実行されるため、外部に情報は漏れません。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-head">
+        <div class="step-num">8</div>
+        <h3>デプロイを実行・URLをコピー</h3>
+      </div>
+      <div class="step-body">
+        <p>「<strong>デプロイ</strong>」ボタンをクリックします。</p>
+        <div class="tip">
+          <div class="tip-title">🔐 初回は権限の確認が必要です</div>
+          <p>「アクセスを承認」→「Googleアカウントを選択」→「詳細」→「(スクリプト名)（安全でないページ）に移動」→「許可」の順でクリックしてください。</p>
+        </div>
+        <div class="img-placeholder">
+          <div class="pi-icon">🎉</div>
+          <div>デプロイ成功！ウェブアプリのURLが表示されます</div>
+        </div>
+        <div class="code-box"><span class="cmt">// このような形式のURLが表示されます</span>
+https://script.google.com/macros/s/<span class="str">AAAA...ZZZZ</span>/exec</div>
+        <p>このURLを<strong>コピー</strong>してください（後のステップで使います）。</p>
+        <div class="highlight">
+          <p>✅ 「ウェブアプリのURL」の横にある「コピー」ボタンを押すと確実です。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 4 ── -->
+  <div class="section">
+    <div class="section-title">📱 STEP 4：アプリにURLを設定</div>
+
+    <div class="step-card">
+      <div class="step-head">
+        <div class="step-num">9</div>
+        <h3>アプリの管理者設定でURLを入力</h3>
+      </div>
+      <div class="step-body">
+        <p>シフト管理アプリをスマホまたはPCで開きます。</p>
+        <ol>
+          <li>下部タブの「<strong>⚙️ 管理</strong>」をタップ（PINを入力：初期値 1234）</li>
+          <li>「<strong>🔗 スプレッドシート連携（GAS URL）</strong>」セクションを見つける</li>
+          <li>コピーしたURLを貼り付ける</li>
+          <li>「<strong>保存</strong>」ボタンをタップ</li>
+        </ol>
+        <div class="highlight">
+          <p>✅ 「URLを保存しました。スタッフ全員が使えるようになりました！」と表示されれば設定完了です。</p>
+        </div>
+        <div class="warn">
+          <div class="warn-title">⚠️ 注意：管理者の端末で1回だけ設定します</div>
+          <p>この設定は管理者のブラウザに保存されます。スタッフの端末では設定不要です。スタッフはそのままアプリを開いてシフトを入力するだけです。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-head">
+        <div class="step-num">10</div>
+        <h3>動作確認をする</h3>
+      </div>
+      <div class="step-body">
+        <p>テスト送信をして、スプレッドシートに記録されるか確認します。</p>
+        <ol>
+          <li>アプリの「📝 入力」タブでテストデータを入力・送信</li>
+          <li>Googleスプレッドシートを開く</li>
+          <li>「<strong>シフト希望</strong>」シートにデータが追加されていればOK！</li>
+        </ol>
+        <div class="img-placeholder">
+          <div class="pi-icon">📊</div>
+          <div style="text-align:left;display:inline-block;font-size:.8rem">
+            <div>A列: 送信日時</div>
+            <div>B列: 名前</div>
+            <div>C列: 対象月</div>
+            <div>D列: 出勤パターン</div>
+            <div>E列: 出勤日</div>
+            <div>F列: 時間帯</div>
+          </div>
+        </div>
+        <div class="tip">
+          <div class="tip-title">💡 データが記録されない場合</div>
+          <p>① GASのURLが正しいか確認<br>② デプロイが「全員」になっているか確認<br>③ Apps Scriptで「実行」→「doPost」で手動テストを試す</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── よくある質問 ── -->
+  <div class="section">
+    <div class="section-title">❓ よくある質問</div>
+
+    <div class="step-card">
+      <div class="step-head" style="background:#555">
+        <div class="step-num" style="background:#888">Q</div>
+        <h3>スクリプトを変更したらURLが変わりますか？</h3>
+      </div>
+      <div class="step-body">
+        <p>はい。スクリプトを変更した場合は「<strong>デプロイを管理</strong>」→「<strong>バージョンを編集</strong>」→「<strong>新しいバージョン</strong>」として再デプロイしてください。</p>
+        <p>再デプロイ後はURLが変わることがあるので、アプリの管理者設定で再度URLを更新してください。</p>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-head" style="background:#555">
+        <div class="step-num" style="background:#888">Q</div>
+        <h3>スプレッドシートが共有されても大丈夫？</h3>
+      </div>
+      <div class="step-body">
+        <p>GASのウェブアプリURLを知っている人だけがデータを送信できます。スプレッドシート自体を誰かと共有するかどうかは管理者が設定でき、デフォルトでは管理者のみアクセスできます。</p>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-head" style="background:#555">
+        <div class="step-num" style="background:#888">Q</div>
+        <h3>無料で使えますか？</h3>
+      </div>
+      <div class="step-body">
+        <p>はい。Google Apps ScriptはGoogleアカウントがあれば無料で使えます。1日の実行回数の上限（6分/回など）がありますが、シフト管理程度の用途では上限に達することはほぼありません。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── フッター ── -->
+  <div style="text-align:center;padding:24px 0;border-top:1px solid #e0e0e0;margin-top:16px;color:#888;font-size:.78rem">
+    <p>🌾 農業パート シフト管理システム - GASセットアップガイド</p>
+    <p style="margin-top:4px">設定でお困りの場合は担当者にお問い合わせください</p>
+  </div>
+
+</div>
+</body>
+</html>

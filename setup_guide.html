@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>📖 セットアップガイド</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP','Hiragino Kaku Gothic ProN',sans-serif;background:#F0F7F4;padding:20px;color:#1A1A1A}
+.card{background:#fff;border-radius:14px;padding:24px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+h1{font-size:1.3rem;color:#1B4332;margin-bottom:6px}
+h2{font-size:1rem;color:#2D6A4F;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.step-num{background:#2D6A4F;color:#fff;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:800;flex-shrink:0}
+p{font-size:.88rem;line-height:1.7;color:#333}
+code{background:#E8F5E9;color:#1B4332;padding:2px 8px;border-radius:5px;font-family:monospace;font-size:.85rem}
+.warn{background:#FFF8E7;border-left:4px solid #D4A017;padding:12px 16px;border-radius:0 8px 8px 0;font-size:.82rem;color:#7A5200;margin-top:10px}
+.ok{background:#D8F3DC;border-left:4px solid #40916C;padding:12px 16px;border-radius:0 8px 8px 0;font-size:.82rem;color:#1B4332;margin-top:10px}
+ul{padding-left:20px;margin-top:8px}
+li{font-size:.85rem;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🌾 シフト希望Webアプリ セットアップガイド</h1>
+  <p>このガイドに沿って設定すると、スマホアプリとして使えるようになります。</p>
+</div>
+
+<div class="card">
+  <h2><span class="step-num">1</span>ファイル構成</h2>
+  <p>以下のファイルを同じフォルダに置いてください：</p>
+  <ul>
+    <li><code>index.html</code> — メインアプリ（スマホ最適化Webアプリ）</li>
+    <li><code>manifest.json</code> — PWA設定（ホーム画面追加用）</li>
+    <li><code>sw.js</code> — Service Worker（オフライン対応）</li>
+    <li><code>icon-192.png / icon-512.png</code> — アプリアイコン</li>
+    <li><code>GAS_Webhook受信スクリプト.js</code> — スプレッドシート連携スクリプト</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h2><span class="step-num">2</span>GAS Webhookの設定（スプレッドシート連携）</h2>
+  <p><strong>① スプレッドシートでGASを開く</strong><br>
+  Googleスプレッドシート → 「拡張機能」→「Apps Script」</p>
+  <p style="margin-top:10px"><strong>② スクリプトを貼り付け</strong><br>
+  <code>GAS_Webhook受信スクリプト.js</code> の内容を全選択してエディタに貼り付け</p>
+  <p style="margin-top:10px"><strong>③ デプロイ</strong><br>
+  「デプロイ」→「新しいデプロイ」→「種類：Webアプリ」<br>
+  アクセス権限: <code>全員</code> に設定 → 「デプロイ」</p>
+  <p style="margin-top:10px"><strong>④ URLをコピー</strong><br>
+  表示された <code>https://script.google.com/macros/s/...</code> をコピー</p>
+  <div class="ok">✅ このURLをWebアプリのトップ画面「送信先URL設定」欄に貼り付けると、回答がスプレッドシートに自動保存されます。</div>
+</div>
+
+<div class="card">
+  <h2><span class="step-num">3</span>Webサーバーに置く（公開方法）</h2>
+  <p>以下のいずれかの方法でスタッフがアクセスできるようにしてください：</p>
+  <ul>
+    <li><strong>GitHub Pages</strong>（無料・おすすめ）— GitHubにファイルをアップしてURLを取得</li>
+    <li><strong>Google Drive + HTMLプレビュー</strong> — Driveにアップして共有URLを配布</li>
+    <li><strong>レンタルサーバー / VPS</strong> — 既存のサーバーにアップロード</li>
+    <li><strong>Netlify / Vercel</strong>（無料）— ドラッグ＆ドロップでデプロイ可能</li>
+  </ul>
+  <div class="warn">⚠️ ローカルのhtmlファイルをスタッフに配布する場合、GAS送信機能はCORSエラーで動作しない場合があります。必ずWebサーバー経由で公開してください。</div>
+</div>
+
+<div class="card">
+  <h2><span class="step-num">4</span>スマホにインストール（ホーム画面追加）</h2>
+  <p><strong>Android（Chrome）：</strong><br>
+  URLを開く → アドレスバーの「…」→「ホーム画面に追加」</p>
+  <p style="margin-top:10px"><strong>iPhone（Safari）：</strong><br>
+  URLを開く → 下の共有ボタン → 「ホーム画面に追加」</p>
+  <div class="ok">✅ ホーム画面に追加するとアプリアイコンが表示され、フルスクリーンで起動できます！</div>
+</div>
+
+<div class="card">
+  <h2><span class="step-num">5</span>スタッフ名の変更方法</h2>
+  <p><code>index.html</code> をテキストエディタで開き、以下の部分を編集してください：</p>
+  <p style="margin-top:8px"><code>&lt;option&gt;田中太郎（P001）&lt;/option&gt;</code></p>
+  <p style="margin-top:6px">この行を追加・削除・変更することでスタッフ名一覧を更新できます。</p>
+</div>
+</body>
+</html>
