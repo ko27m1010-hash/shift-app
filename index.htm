@@ -1,0 +1,2036 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="light" style=""><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+    <meta name="theme-color" content="#2D6A4F">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="シフト管理">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+    <link rel="shortcut icon" href="icon-192.png">
+    <title>🌾 シフト管理システム</title>
+    <style>
+      :root {
+        --gd: #1b4332;
+        --gm: #2d6a4f;
+        --gg: #40916c;
+        --gl: #74c69d;
+        --gp: #d8f3dc;
+        --gb: #f0f7f4;
+        --gold: #d4a017;
+        --red: #c0392b;
+        --blue: #0077b6;
+        --orange: #e67e22;
+        --text: #1a1a1a;
+        --sub: #666;
+        --bd: #c8ddd4;
+        --r: 13px;
+        --sh: 0 2px 10px rgba(0, 0, 0, 0.09);
+        --fn: 'Noto Sans JP', sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family: var(--fn);
+        background: var(--gb);
+        color: var(--text);
+        padding-bottom: 80px;
+      }
+      .hdr {
+        background: linear-gradient(135deg, var(--gd), var(--gm));
+        padding: 14px 16px;
+        position: sticky;
+        top: 0;
+        z-index: 200;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+      }
+      .hdr-logo {
+        font-size: 1.6rem;
+      }
+      .hdr-title {
+        font-size: 1rem;
+        font-weight: 900;
+        line-height: 1.2;
+      }
+      .hdr-sub {
+        font-size: 0.7rem;
+        color: #b7e4c7;
+      }
+      .tab-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 200;
+        background: #fff;
+        border-top: 1px solid var(--bd);
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        padding-bottom: env(safe-area-inset-bottom);
+        box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.1);
+      }
+      .tab-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 10px 4px;
+        cursor: pointer;
+        border: none;
+        background: none;
+        color: var(--sub);
+        font-weight: 700;
+        font-size: 0.65rem;
+        position: relative;
+      }
+      .tab-btn .t-icon {
+        font-size: 1.4rem;
+        margin-bottom: 3px;
+      }
+      .tab-btn.active {
+        color: var(--gg);
+      }
+      .tab-btn.active::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 32px;
+        height: 3px;
+        background: var(--gg);
+        border-radius: 3px 3px 0 0;
+      }
+      .tab-panel {
+        display: none;
+        padding: 14px;
+        max-width: 520px;
+        margin: 0 auto;
+      }
+      .tab-panel.active {
+        display: block;
+      }
+      .card {
+        background: #fff;
+        border-radius: var(--r);
+        box-shadow: var(--sh);
+        margin-bottom: 12px;
+        overflow: hidden;
+      }
+      .card-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 15px;
+        background: var(--gd);
+        color: #fff;
+      }
+      .ch-title {
+        font-size: 0.92rem;
+        font-weight: 800;
+        flex: 1;
+      }
+      .ch-badge {
+        font-size: 0.65rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: var(--red);
+        color: #fff;
+      }
+      .ch-badge.opt {
+        background: rgba(255, 255, 255, 0.2);
+        color: #b7e4c7;
+      }
+      .card-body {
+        padding: 14px;
+      }
+      .sel-wrap {
+        position: relative;
+      }
+      .sel-wrap::after {
+        content: '▼';
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--gg);
+        font-size: 0.7rem;
+        pointer-events: none;
+      }
+      select,
+      input[type='text'],
+      input[type='number'],
+      input[type='email'],
+      input[type='time'],
+      textarea {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid var(--bd);
+        border-radius: 10px;
+        font-size: 0.95rem;
+        font-family: var(--fn);
+        background: #fafaf8;
+        appearance: none;
+        outline: none;
+      }
+      select:focus,
+      input:focus,
+      textarea:focus {
+        border-color: var(--gg);
+      }
+      textarea {
+        min-height: 80px;
+        resize: vertical;
+      }
+      .opts {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .opt-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px;
+        border: 2px solid var(--bd);
+        border-radius: 10px;
+        background: #fafaf8;
+        cursor: pointer;
+      }
+      .opt-item.selected {
+        border-color: var(--gg);
+        background: var(--gp);
+        font-weight: 700;
+      }
+      .opt-item input[type='radio'] {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--gg);
+      }
+      .btn-submit {
+        width: 100%;
+        padding: 16px;
+        background: linear-gradient(135deg, var(--gm), var(--gg));
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.05rem;
+        font-weight: 900;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(45, 106, 79, 0.3);
+      }
+      .btn-reset {
+        width: 100%;
+        padding: 12px;
+        background: none;
+        border: 2px solid var(--bd);
+        color: var(--sub);
+        border-radius: 10px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        margin-top: 10px;
+        cursor: pointer;
+      }
+      .btn-action {
+        padding: 8px 16px;
+        background: var(--gm);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .btn-danger {
+        background: #fff;
+        border: 2px solid var(--red);
+        color: var(--red);
+      }
+      .cal-wrap {
+        border: 2px solid var(--bd);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 10px;
+      }
+      .cal-hdr {
+        background: var(--gd);
+        color: #fff;
+        padding: 10px;
+        display: flex;
+        justify-content: space-between;
+        font-weight: 800;
+        font-size: 0.9rem;
+      }
+      .cal-wk {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        background: var(--gp);
+        text-align: center;
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 6px 0;
+        color: var(--gm);
+      }
+      .cal-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 1px;
+        background: var(--bd);
+      }
+      .cal-cell {
+        background: #fff;
+        min-height: 50px;
+        padding: 4px;
+        text-align: center;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .cal-cell.empty {
+        background: #f8f8f8;
+        cursor: default;
+      }
+      .cal-cell.chk {
+        background: var(--gp);
+      }
+      .cal-cell .cn {
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+      .cal-cell .ct {
+        font-size: 0.65rem;
+        margin-top: 2px;
+        border-radius: 3px;
+        padding: 2px 4px;
+        color: #fff;
+        background: var(--gm);
+      }
+      .cal-actions {
+        display: flex;
+        gap: 10px;
+      }
+      .cal-actions button {
+        flex: 1;
+        padding: 8px;
+        border-radius: 8px;
+        border: 2px solid var(--gg);
+        background: #fff;
+        color: var(--gg);
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .modal-bg {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 500;
+        background: rgba(0, 0, 0, 0.5);
+        align-items: flex-end;
+        justify-content: center;
+      }
+      .modal-bg.open {
+        display: flex;
+      }
+      .modal {
+        background: #fff;
+        width: 100%;
+        max-width: 520px;
+        border-radius: 20px 20px 0 0;
+        padding: 20px;
+        max-height: 85vh;
+        overflow-y: auto;
+      }
+      .modal-title {
+        font-size: 1.1rem;
+        font-weight: 900;
+        color: var(--gd);
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .close-btn {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--sub);
+        cursor: pointer;
+      }
+      .overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 600;
+        background: linear-gradient(135deg, var(--gd), var(--gm));
+        color: #fff;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        text-align: center;
+      }
+      .overlay.open {
+        display: flex;
+      }
+      .toast {
+        display: none;
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--gg);
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 700;
+        z-index: 700;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+      .progress-bar {
+        height: 4px;
+        background: var(--gb);
+        position: sticky;
+        top: 66px;
+        z-index: 199;
+      }
+      .progress-fill {
+        height: 100%;
+        background: var(--gold);
+        width: 0%;
+        transition: width 0.3s;
+      }
+      .staff-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        border-bottom: 1px solid var(--bd);
+      }
+      .hist-card {
+        border: 2px solid var(--bd);
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 10px;
+      }
+
+      /* 管理カレンダー用 */
+      .adm-cell {
+        min-height: 60px;
+      }
+      .adm-cell .ac-n {
+        font-size: 1.1rem;
+        font-weight: 900;
+        color: var(--gm);
+      }
+      .adm-cell.n0 {
+        background: #fff;
+      }
+      .adm-cell.n1 {
+        background: #fff9e6;
+      }
+      .adm-cell.n2 {
+        background: #fff0dc;
+      }
+      .adm-cell.n3 {
+        background: #e8f8ee;
+      }
+      .adm-cell.n4 {
+        background: #d8f3dc;
+      }
+      .adm-cell.n5p {
+        background: #b7e4c7;
+      }
+      .mgr-nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        background: #fff;
+        padding: 10px;
+        border-radius: 10px;
+        box-shadow: var(--sh);
+      }
+
+      /* PC View Improvements */
+      body.admin-view-desktop #tab-mgr {
+        max-width: none;
+        width: min(96vw, 1680px);
+        padding: 20px;
+      }
+      body.admin-view-desktop #tab-mgr .mgr-dashboard {
+        display: grid;
+        grid-template-columns: minmax(700px, 2fr) minmax(320px, 1fr);
+        gap: 20px;
+        align-items: start;
+      }
+      body.admin-view-desktop #tab-mgr .mgr-admin-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        align-items: start;
+        margin-top: 20px;
+      }
+      body.admin-view-desktop #tab-mgr .adm-cell {
+        min-height: 100px;
+        padding: 10px;
+      }
+      body.admin-view-desktop #tab-mgr .adm-cell .cn {
+        font-size: 1rem;
+      }
+      body.admin-view-desktop #tab-mgr .adm-cell .ac-n {
+        font-size: 1.6rem;
+      }
+      body.admin-view-desktop #dayModal {
+        align-items: center;
+        padding: 20px;
+      }
+      body.admin-view-desktop #dayModal .modal {
+        width: min(94vw, 1200px);
+        max-width: none;
+        border-radius: 20px;
+        padding: 30px;
+      }
+      body.admin-view-desktop #dayModal #dayStaffList {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+      }
+      body.admin-view-desktop #histModal {
+        align-items: center;
+        padding: 20px;
+      }
+      body.admin-view-desktop #histModal .modal {
+        width: min(94vw, 1200px);
+        max-width: none;
+        border-radius: 20px;
+        padding: 30px;
+      }
+      body.admin-view-desktop #histModal #histList {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+      }
+
+      @media (max-width: 1023px) {
+        body.admin-view-desktop #tab-mgr .mgr-dashboard,
+        body.admin-view-desktop #tab-mgr .mgr-admin-grid {
+          grid-template-columns: 1fr;
+        }
+        body.admin-view-desktop #dayModal #dayStaffList {
+          grid-template-columns: 1fr;
+        }
+        body.admin-view-desktop #histModal #histList {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Open%20Sans:wght@400&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Google%20Sans:wght@400&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400&amp;display=swap" rel="stylesheet"></head>
+  <body style="">
+    <div class="hdr">
+      <div class="hdr-logo">🌾</div>
+      <div style="flex: 1">
+        <div class="hdr-title">シフト管理システム</div>
+        <div class="hdr-sub">農業パートスタッフ用</div>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progFill"></div></div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- タブ1：シフト入力 -->
+    <div class="tab-panel" id="tab-input">
+      <div class="card" id="bannerHist" style="display: none; background: #e3f2fd; border: 1px solid #90caf9; cursor: pointer" onclick="openHist()">
+        <div class="card-body" style="color: #1565c0; font-weight: 700; text-align: center">
+          📋 提出済みシフトを確認・編集する
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">👤<span class="ch-title">お名前</span><span class="ch-badge">必須</span></div>
+        <div class="card-body">
+          <div class="sel-wrap">
+            <select id="inpName" onchange="calcProg()">
+              <option value="">選択してください</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">📅<span class="ch-title">対象月</span><span class="ch-badge">必須</span></div>
+        <div class="card-body">
+          <div class="sel-wrap">
+            <select id="inpMonth" onchange="onMonthChange()">
+              <option value="">選択してください</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">🗓️<span class="ch-title">出勤可能パターン</span><span class="ch-badge">必須</span></div>
+        <div class="card-body">
+          <div class="opts" id="inpPattern">
+            <label class="opt-item" onclick="
+                selRadio(this, 'inpPattern');
+                toggleCal();
+              "><input type="radio" name="pattern" value="個別に日付を選択する"> 個別に日付を選択する</label>
+            <label class="opt-item" onclick="
+                selRadio(this, 'inpPattern');
+                toggleCal();
+              "><input type="radio" name="pattern" value="ほぼ全日出勤可能"> ほぼ全日出勤可能</label>
+            <label class="opt-item" onclick="
+                selRadio(this, 'inpPattern');
+                toggleCal();
+              "><input type="radio" name="pattern" value="今月は出勤不可"> 今月は出勤不可</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="calSection" style="display: none">
+        <div class="card-head">
+          📆<span class="ch-title">出勤日と時間帯を選択</span><span class="ch-badge opt">日ごとに設定可</span>
+        </div>
+        <div class="card-body">
+          <div class="cal-wrap">
+            <div class="cal-hdr"><span id="icMonth"></span><span id="icCount">0日選択中</span></div>
+            <div class="cal-wk">
+              <div>日</div>
+              <div>月</div>
+              <div>火</div>
+              <div>水</div>
+              <div>木</div>
+              <div>金</div>
+              <div>土</div>
+            </div>
+            <div class="cal-grid" id="icGrid"></div>
+          </div>
+          <div class="cal-actions">
+            <button onclick="icSelectAll()">✅ 全日選択</button>
+            <button onclick="icClearAll()" style="color: var(--sub); border-color: var(--bd)">🗑️ 全解除</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="tbSection">
+        <div class="card-head">
+          ⏰<span class="ch-title">希望する出勤時間帯</span><span class="ch-badge opt">任意</span>
+        </div>
+        <div class="card-body">
+          <div class="opts" id="inpTimeband">
+            <label class="opt-item" onclick="
+                selRadio(this, 'inpTimeband');
+                calcProg();
+              "><input type="radio" name="timeband" value="午前のみ（8:00〜12:00）"> 午前のみ (8:00〜12:00)</label>
+            <label class="opt-item" onclick="
+                selRadio(this, 'inpTimeband');
+                calcProg();
+              "><input type="radio" name="timeband" value="午後のみ（13:00〜17:00）"> 午後のみ (13:00〜17:00)</label>
+            <label class="opt-item" onclick="
+                selRadio(this, 'inpTimeband');
+                calcProg();
+              "><input type="radio" name="timeband" value="全日（8:00〜17:00）"> 全日 (8:00〜17:00)</label>
+            <label class="opt-item" onclick="
+                selRadio(this, 'inpTimeband');
+                calcProg();
+              "><input type="radio" name="timeband" value="時間帯は問わない"> 時間帯は問わない</label>
+            <label class="opt-item" onclick="
+                selRadio(this, 'inpTimeband');
+                document.getElementById('customTbArea').style.display = 'block';
+                calcProg();
+              ">
+              <input type="radio" name="timeband" value="カスタム"> 時間を指定する
+            </label>
+          </div>
+          <div id="customTbArea" style="display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--bd)">
+            <div style="display: flex; align-items: center; gap: 10px">
+              <input type="time" id="cStart" value="08:00"> 〜 <input type="time" id="cEnd" value="17:00">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          💬<span class="ch-title">その他・特記事項</span><span class="ch-badge opt">任意</span>
+        </div>
+        <div class="card-body"><textarea id="inpNote" placeholder="例）〇日はお休みしたい"></textarea></div>
+      </div>
+
+      <button class="btn-submit" onclick="submitForm()">✉️ シフト希望を送信する</button>
+      <button class="btn-reset" onclick="resetForm()">🔄 入力をリセット</button>
+    </div>
+
+    <!-- タブ2：公開カレンダー -->
+    <div class="tab-panel active" id="tab-pub">
+      <div class="mgr-nav">
+        <button class="btn-action" onclick="changePubMonth(-1)">◀</button>
+        <div style="font-weight: 900; font-size: 1.1rem; color: var(--gd)" id="pubMonthLabel">2026年5月</div>
+        <button class="btn-action" onclick="changePubMonth(1)">▶</button>
+      </div>
+      <div class="card">
+        <div class="card-body" style="padding: 10px">
+          <div class="cal-wrap" style="margin: 0; border: none">
+            <div class="cal-wk" style="background: var(--gd); color: #fff">
+              <div>日</div>
+              <div>月</div>
+              <div>火</div>
+              <div>水</div>
+              <div>木</div>
+              <div>金</div>
+              <div>土</div>
+            </div>
+            <div class="cal-grid" id="pubGrid"><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell empty"></div><div class="cal-cell n0" onclick="openDay(2026,5,1,false)">
+        <div class="cn">1</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,2,false)">
+        <div class="cn">2</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,3,false)">
+        <div class="cn">3</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,4,false)">
+        <div class="cn">4</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,5,false)">
+        <div class="cn">5</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,6,false)">
+        <div class="cn">6</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,7,false)">
+        <div class="cn">7</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,8,false)">
+        <div class="cn">8</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,9,false)">
+        <div class="cn">9</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,10,false)">
+        <div class="cn">10</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,11,false)">
+        <div class="cn">11</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,12,false)">
+        <div class="cn">12</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,13,false)">
+        <div class="cn">13</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,14,false)">
+        <div class="cn">14</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,15,false)">
+        <div class="cn">15</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,16,false)">
+        <div class="cn">16</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,17,false)">
+        <div class="cn">17</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,18,false)">
+        <div class="cn">18</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,19,false)">
+        <div class="cn">19</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,20,false)">
+        <div class="cn">20</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,21,false)">
+        <div class="cn">21</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,22,false)">
+        <div class="cn">22</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,23,false)">
+        <div class="cn">23</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,24,false)">
+        <div class="cn">24</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,25,false)">
+        <div class="cn">25</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,26,false)">
+        <div class="cn">26</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,27,false)">
+        <div class="cn">27</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,28,false)">
+        <div class="cn">28</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,29,false)">
+        <div class="cn">29</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,30,false)">
+        <div class="cn">30</div>
+      </div><div class="cal-cell n0" onclick="openDay(2026,5,31,false)">
+        <div class="cn">31</div>
+      </div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- タブ3：管理者 -->
+    <div class="tab-panel" id="tab-mgr">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px; flex-wrap: wrap">
+        <div style="font-weight: 900; color: var(--gd)">🖥️ 管理者モード</div>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
+          <button class="btn-action" style="background: #fff; color: var(--gg); border: 2px solid var(--gg)" onclick="manualSync()">
+            ☁️ 今すぐ同期
+          </button>
+          <select id="viewMode" onchange="changeViewMode()" style="width: auto; padding: 6px 10px">
+            <option value="auto">自動切替</option>
+            <option value="mobile">スマホ表示</option>
+            <option value="desktop">PC表示</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mgr-dashboard">
+        <div>
+          <div class="mgr-nav">
+            <button class="btn-action" onclick="changeAdmMonth(-1)">◀ 前月</button>
+            <div style="font-weight: 900; font-size: 1.1rem; color: var(--gd)" id="admMonthLabel">2026年5月</div>
+            <button class="btn-action" onclick="changeAdmMonth(1)">次月 ▶</button>
+          </div>
+          <div class="card">
+            <div class="card-body" style="padding: 10px">
+              <div class="cal-wrap" style="margin: 0; border: none">
+                <div class="cal-wk" style="background: var(--gd); color: #fff">
+                  <div>日</div>
+                  <div>月</div>
+                  <div>火</div>
+                  <div>水</div>
+                  <div>木</div>
+                  <div>金</div>
+                  <div>土</div>
+                </div>
+                <div class="cal-grid" id="admGrid"><div class="adm-cell empty"></div><div class="adm-cell empty"></div><div class="adm-cell empty"></div><div class="adm-cell empty"></div><div class="adm-cell empty"></div><div class="adm-cell n0" onclick="openDay(2026,5,1,true)">
+        <div class="cn">1</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,2,true)">
+        <div class="cn">2</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,3,true)">
+        <div class="cn">3</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,4,true)">
+        <div class="cn">4</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,5,true)">
+        <div class="cn">5</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,6,true)">
+        <div class="cn">6</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,7,true)">
+        <div class="cn">7</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,8,true)">
+        <div class="cn">8</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,9,true)">
+        <div class="cn">9</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,10,true)">
+        <div class="cn">10</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,11,true)">
+        <div class="cn">11</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,12,true)">
+        <div class="cn">12</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,13,true)">
+        <div class="cn">13</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,14,true)">
+        <div class="cn">14</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,15,true)">
+        <div class="cn">15</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,16,true)">
+        <div class="cn">16</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,17,true)">
+        <div class="cn">17</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,18,true)">
+        <div class="cn">18</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,19,true)">
+        <div class="cn">19</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,20,true)">
+        <div class="cn">20</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,21,true)">
+        <div class="cn">21</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,22,true)">
+        <div class="cn">22</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,23,true)">
+        <div class="cn">23</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,24,true)">
+        <div class="cn">24</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,25,true)">
+        <div class="cn">25</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,26,true)">
+        <div class="cn">26</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,27,true)">
+        <div class="cn">27</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,28,true)">
+        <div class="cn">28</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,29,true)">
+        <div class="cn">29</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,30,true)">
+        <div class="cn">30</div><div class="ac-n">-</div>
+      </div><div class="adm-cell n0" onclick="openDay(2026,5,31,true)">
+        <div class="cn">31</div><div class="ac-n">-</div>
+      </div></div>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; margin-bottom: 15px">
+            <button class="btn-action" style="flex: 1; background: #fff; color: var(--gg); border: 2px solid var(--gg)" onclick="exportCSV()">
+              📥 CSV出力
+            </button>
+            <button class="btn-action" style="flex: 1; background: #fff; color: var(--gg); border: 2px solid var(--gg)" onclick="exportText()">
+              📋 テキスト出力
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div class="card">
+            <div class="card-head">📊<span class="ch-title">月間集計</span></div>
+            <div class="card-body" id="admSummary">
+    <div style="display:flex;gap:10px;text-align:center">
+      <div style="flex:1;background:var(--gp);padding:10px;border-radius:10px">
+        <div style="font-size:1.5rem;font-weight:900;color:var(--gd)">0</div>
+        <div style="font-size:.7rem;color:var(--sub)">延べ出勤数</div>
+      </div>
+      <div style="flex:1;background:var(--gb);padding:10px;border-radius:10px">
+        <div style="font-size:1.5rem;font-weight:900;color:var(--gd)">0</div>
+        <div style="font-size:.7rem;color:var(--sub)">稼働スタッフ</div>
+      </div>
+    </div></div>
+          </div>
+          <div class="card">
+            <div class="card-head">💴<span class="ch-title">簡易請求・実績管理</span></div>
+            <div class="card-body" id="admBilling"><div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この月は 0 件の出勤予定があります。</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mgr-admin-grid">
+        <div class="card">
+          <div class="card-head">👥<span class="ch-title">スタッフ管理・精算設定</span></div>
+          <div class="card-body">
+            <div style="display: flex; gap: 10px; margin-bottom: 10px">
+              <input type="text" id="newStaff" placeholder="名前を入力">
+              <button class="btn-action" onclick="addStaff()">追加</button>
+            </div>
+            <div style="font-size: .78rem; color: var(--sub); margin-bottom: 12px; line-height: 1.6">
+              出勤単価（1日）・片道距離・交通費単価（円/km）をスタッフごとに設定できます。交通費は <strong>片道距離 × 2 × 交通費単価</strong> で日額見込みを自動計算します。
+            </div>
+            <div id="staffList"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">⚙️<span class="ch-title">管理者設定</span></div>
+          <div class="card-body">
+            <div style="margin-bottom: 15px">
+              <label style="font-size: 0.8rem; color: var(--sub); display: block; margin-bottom: 5px">管理者PIN変更</label>
+              <div style="display: flex; gap: 10px">
+                <input type="number" id="newPin" placeholder="4桁">
+                <button class="btn-action" onclick="changePin()">変更</button>
+              </div>
+            </div>
+            <div style="margin-bottom: 15px">
+              <button class="btn-action btn-danger" style="width: 100%" onclick="delMonthData()">
+                🗑️ この月のデータを削除
+              </button>
+            </div>
+            <div>
+              <button class="btn-action btn-danger" style="width: 100%" onclick="resetAll()">⚠️ 全データ初期化</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 下部タブバー -->
+    <div class="tab-bar">
+      <button class="tab-btn" onclick="switchTab('input')">
+        <div class="t-icon">📝</div>
+        <div>シフト入力</div>
+      </button>
+      <button class="tab-btn active" onclick="switchTab('pub')">
+        <div class="t-icon">📅</div>
+        <div>カレンダー</div>
+      </button>
+      <button class="tab-btn" onclick="switchTab('mgr')">
+        <div class="t-icon">⚙️</div>
+        <div>管理者</div>
+      </button>
+    </div>
+
+    <!-- モーダル：時間帯ピッカー -->
+    <div class="modal-bg" id="timepickModal">
+      <div class="modal">
+        <div class="modal-title">
+          <span id="tpTitle">日付</span><button class="close-btn" onclick="closeModal('timepickModal')">✕</button>
+        </div>
+        <div class="opts">
+          <div class="opt-item" onclick="setCellTime('朝一のみ（8:00〜9:00）')">⏰ 朝一のみ (8:00〜9:00)</div>
+          <div class="opt-item" onclick="setCellTime('午前のみ（8:00〜12:00）')">🌅 午前のみ (8:00〜12:00)</div>
+          <div class="opt-item" onclick="setCellTime('午後のみ（13:00〜17:00）')">🌞 午後のみ (13:00〜17:00)</div>
+          <div class="opt-item" onclick="setCellTime('全日（8:00〜17:00）')">🌻 全日 (8:00〜17:00)</div>
+          <div class="opt-item" onclick="setCellTime('時間帯は問わない')">✅ 時間帯は問わない</div>
+          <div class="opt-item" onclick="document.getElementById('tpCustom').style.display = 'block'">
+            🕐 時間を自由入力
+          </div>
+        </div>
+        <div id="tpCustom" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--bd)">
+          <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px">
+            <input type="time" id="tpcS" value="08:00">〜<input type="time" id="tpcE" value="17:00">
+          </div>
+          <button class="btn-action" style="width: 100%" onclick="setCellCustom()">決定</button>
+        </div>
+        <button class="btn-reset" style="border-color: #ffb3b3; color: var(--red); margin-top: 15px" onclick="setCellTime('')">
+          🗑️ この日をクリア
+        </button>
+      </div>
+    </div>
+
+    <!-- モーダル：日別詳細（管理者・公開兼用） -->
+    <div class="modal-bg" id="dayModal">
+      <div class="modal">
+        <div class="modal-title">
+          <span id="dmTitle">詳細</span><button class="close-btn" onclick="closeModal('dayModal')">✕</button>
+        </div>
+        <div id="dmSummary" style="display: flex; gap: 10px; margin-bottom: 15px; font-weight: 700; color: var(--gd)"></div>
+        <div id="dayStaffList" style="display: flex; flex-direction: column; gap: 8px"></div>
+        <div id="dmAdminArea" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--bd)">
+          <div style="font-weight: 700; margin-bottom: 10px; color: var(--orange)">🏃 急遽参加者を追加</div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px">
+            <input type="text" id="dmAddName" placeholder="名前" style="flex: 1 1 180px"><select id="dmAddTime" style="flex: 0 0 140px">
+              <option value="午前">午前</option>
+              <option value="午後">午後</option>
+              <option value="全日">全日</option></select><button class="btn-action" onclick="addSudden()">追加</button>
+          </div>
+          <div style="font-weight: 700; margin-bottom: 10px; color: var(--gd)">🗂 管理者用 作業計画</div>
+          <div style="display: grid; gap: 10px">
+            <input type="text" id="dmTaskHeadcount" placeholder="必要人数メモ（例：2〜3人 / 4人以上）">
+            <textarea id="dmTaskText" placeholder="当日の作業内容を入力（例：午前は草取り、午後は収穫）" style="min-height: 110px"></textarea>
+            <input type="text" id="dmTaskMemo" placeholder="管理メモ（任意）">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap">
+              <button class="btn-action" onclick="saveWorkPlan()">保存</button>
+              <button class="btn-action btn-danger" onclick="deleteWorkPlan()">削除</button>
+            </div>
+            <div style="font-size: .78rem; color: var(--sub)">※ 作業計画は管理者だけが確認でき、スタッフの公開カレンダーには表示しません。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- モーダル：提出済み一覧 -->
+    <div class="modal-bg" id="histModal">
+      <div class="modal" style="width: min(94vw, 1200px)">
+        <div class="modal-title">
+          <span>📋 提出済みシフト一覧</span><button class="close-btn" onclick="closeModal('histModal')">✕</button>
+        </div>
+        <div id="histList"></div>
+      </div>
+    </div>
+
+    <!-- PIN認証 -->
+    <div class="overlay" id="pinOverlay">
+      <div style="font-size: 3rem; margin-bottom: 10px">🔐</div>
+      <div style="font-size: 1.2rem; font-weight: 900; margin-bottom: 20px">管理者認証</div>
+      <input type="password" id="pinInput" placeholder="4桁のPIN" maxlength="4" style="
+          width: 150px;
+          text-align: center;
+          font-size: 1.5rem;
+          letter-spacing: 10px;
+          margin-bottom: 20px;
+          color: #000;
+        ">
+      <div style="display: flex; gap: 10px">
+        <button class="btn-action" onclick="checkPin()" style="background: #fff; color: var(--gd)">認証</button>
+        <button class="btn-reset" onclick="cancelPin()" style="color: #fff; border-color: #fff; margin: 0; padding: 8px 16px">
+          キャンセル
+        </button>
+      </div>
+    </div>
+
+    <!-- 送信完了 -->
+    <div class="overlay" id="compOverlay">
+      <div style="font-size: 4rem; margin-bottom: 10px">✅</div>
+      <div style="font-size: 1.5rem; font-weight: 900; margin-bottom: 10px">送信完了！</div>
+      <div style="font-size: 0.9rem; margin-bottom: 20px; color: #d8f3dc">シフト希望が提出されました。</div>
+      <button class="btn-action" onclick="closeComp()" style="background: #fff; color: var(--gd); padding: 12px 30px; border-radius: 20px">
+        閉じる
+      </button>
+    </div>
+
+    <script>
+      // --- State ---
+      const GAS_URL = 'https://script.google.com/macros/s/AKfycbyol3aRw36McuyYjOfSK-NsRST8PqQHtiU7SUSh5CbYzSc9jyM658AoCBbGNBT5223CDg/exec';
+      const DEFAULT_STAFF = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '田中 美咲', '伊藤 健太'];
+      const STAFF_PROFILE_PATTERN = '__staff_profile__';
+      const WORK_PLAN_PATTERN = '__work_plan__';
+      let staffList = JSON.parse(localStorage.getItem('sf_staff')) || DEFAULT_STAFF;
+      let staffProfiles = JSON.parse(localStorage.getItem('sf_staff_profiles')) || DEFAULT_STAFF.map((name) => createDefaultStaffProfile(name));
+      let workPlans = JSON.parse(localStorage.getItem('sf_work_plans')) || {};
+      let submissions = JSON.parse(localStorage.getItem('sf_subs')) || [];
+      let adminPin = localStorage.getItem('sf_pin') || '1234';
+      let adminUnlocked = false;
+
+      let curYear = new Date().getFullYear();
+      let curMonth = new Date().getMonth() + 1;
+      let inpYear = curYear,
+        inpMonth = curMonth + 1;
+      if (inpMonth > 12) {
+        inpMonth = 1;
+        inpYear++;
+      }
+      let viewYear = inpYear,
+        viewMonth = inpMonth;
+
+      let inputDates = {}; // {"1日":"午前のみ", ...}
+      let pickingDay = 0;
+      let editId = null;
+
+      // --- Init ---
+      document.addEventListener('DOMContentLoaded', async () => {
+        initSelects();
+        mergeStaffProfiles(staffList, staffProfiles);
+        updateStaffUI();
+        updateBanner();
+        renderViews();
+        checkDesktopView();
+        window.addEventListener('resize', checkDesktopView);
+        await loadRemoteData(false);
+
+        setInterval(() => {
+          const activeId = document.querySelector('.tab-panel.active')?.id;
+          if (activeId === 'tab-mgr' || activeId === 'tab-pub') loadRemoteData(false);
+        }, 30000);
+      });
+
+      function saveDB() {
+        localStorage.setItem('sf_staff', JSON.stringify(staffList));
+        localStorage.setItem('sf_staff_profiles', JSON.stringify(staffProfiles));
+        localStorage.setItem('sf_work_plans', JSON.stringify(workPlans));
+        localStorage.setItem('sf_subs', JSON.stringify(submissions));
+        localStorage.setItem('sf_pin', adminPin);
+      }
+
+      async function gasGet(action) {
+        const res = await fetch(`${GAS_URL}?action=${encodeURIComponent(action)}&_=${Date.now()}`);
+        if (!res.ok) throw new Error('GAS GET通信に失敗しました');
+        return res.json();
+      }
+
+      async function gasPost(payload) {
+        const res = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error('GAS POST通信に失敗しました');
+        return res.json();
+      }
+
+      async function loadRemoteData(showMessage = false) {
+        try {
+          const data = await gasGet('list');
+          if (!data?.ok) throw new Error(data?.message || '同期に失敗しました');
+          staffList = Array.isArray(data.staff) && data.staff.length ? data.staff : [...DEFAULT_STAFF];
+          parseRemoteRecords(Array.isArray(data.submissions) ? data.submissions : []);
+          adminPin = String(data.pin || '1234');
+          saveDB();
+          updateStaffUI();
+          updateBanner();
+          renderViews();
+          if (showMessage) showToast('最新データを同期しました');
+          return true;
+        } catch (err) {
+          console.error(err);
+          if (showMessage) showToast('同期に失敗しました');
+          return false;
+        }
+      }
+
+      async function manualSync() {
+        await loadRemoteData(true);
+      }
+
+      function normalizeMonthValue(value) {
+        if (!value) return '';
+        const text = String(value).trim();
+        const jp = text.match(/(\d{4})年\s*(\d{1,2})月/);
+        if (jp) return `${parseInt(jp[1], 10)}年${parseInt(jp[2], 10)}月`;
+
+        const parsed = new Date(text);
+        if (!Number.isNaN(parsed.getTime())) {
+          return `${parsed.getFullYear()}年${parsed.getMonth() + 1}月`;
+        }
+        return text;
+      }
+
+      function createDefaultStaffProfile(name) {
+        return { name, dailyRate: 0, transportDistance: 0, transportRate: 0 };
+      }
+
+      function safeJsonParse(value, fallback = {}) {
+        try {
+          return JSON.parse(String(value || ''));
+        } catch (e) {
+          return fallback;
+        }
+      }
+
+      function getDateKey(y, m, d) {
+        return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      }
+
+      function getWorkPlan(y, m, d) {
+        return workPlans[getDateKey(y, m, d)] || { requiredPeople: '', task: '', memo: '' };
+      }
+
+      function buildStaffProfileEntry(profile) {
+        return {
+          id: `cfg_staff_${encodeURIComponent(profile.name)}`,
+          name: profile.name,
+          month: '__config__',
+          pattern: STAFF_PROFILE_PATTERN,
+          timeband: JSON.stringify({
+            dailyRate: Number(profile.dailyRate || 0),
+            transportDistance: Number(profile.transportDistance || 0),
+            transportRate: Number(profile.transportRate || 0),
+          }),
+          dateDetails: {},
+          note: '',
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      function buildWorkPlanEntry(y, m, d, plan) {
+        const dateKey = getDateKey(y, m, d);
+        return {
+          id: `work_plan_${dateKey}`,
+          name: `__task__${dateKey}`,
+          month: '__tasks__',
+          pattern: WORK_PLAN_PATTERN,
+          timeband: '',
+          dateDetails: {},
+          note: JSON.stringify({
+            dateKey,
+            requiredPeople: String(plan.requiredPeople || ''),
+            task: String(plan.task || ''),
+            memo: String(plan.memo || ''),
+          }),
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      function mergeStaffProfiles(names, incomingProfiles = []) {
+        const mergedMap = new Map();
+        [...(staffProfiles || []), ...(incomingProfiles || [])].forEach((profile) => {
+          if (!profile?.name) return;
+          mergedMap.set(profile.name, { ...createDefaultStaffProfile(profile.name), ...profile });
+        });
+        staffProfiles = names.map((name) => mergedMap.get(name) || createDefaultStaffProfile(name));
+      }
+
+      function getStaffProfile(name) {
+        return staffProfiles.find((profile) => profile.name === name) || createDefaultStaffProfile(name);
+      }
+
+      function getDailyTransport(profile) {
+        return Math.round(Number(profile.transportDistance || 0) * 2 * Number(profile.transportRate || 0));
+      }
+
+      function getDailyUnitTotal(profile) {
+        return Number(profile.dailyRate || 0) + getDailyTransport(profile);
+      }
+
+      function formatYen(value) {
+        return `¥${Math.round(Number(value || 0)).toLocaleString('ja-JP')}`;
+      }
+
+      function parseRemoteRecords(records = []) {
+        const actualSubs = [];
+        const incomingProfiles = [];
+        const incomingPlans = {};
+
+        records.forEach((record) => {
+          if (record.pattern === STAFF_PROFILE_PATTERN) {
+            const parsed = safeJsonParse(record.timeband, {});
+            incomingProfiles.push({
+              name: record.name,
+              dailyRate: Number(parsed.dailyRate || 0),
+              transportDistance: Number(parsed.transportDistance || 0),
+              transportRate: Number(parsed.transportRate || 0),
+            });
+            return;
+          }
+
+          if (record.pattern === WORK_PLAN_PATTERN) {
+            const parsed = safeJsonParse(record.note, {});
+            const dateKey = parsed.dateKey || String(record.name || '').replace('__task__', '');
+            if (dateKey) {
+              incomingPlans[dateKey] = {
+                requiredPeople: String(parsed.requiredPeople || ''),
+                task: String(parsed.task || ''),
+                memo: String(parsed.memo || ''),
+              };
+            }
+            return;
+          }
+
+          actualSubs.push({
+            ...record,
+            month: normalizeMonthValue(record.month),
+            dateDetails: record?.dateDetails && typeof record.dateDetails === 'object' ? record.dateDetails : {},
+          });
+        });
+
+        submissions = actualSubs;
+        workPlans = incomingPlans;
+        mergeStaffProfiles(staffList, incomingProfiles);
+      }
+
+      function initSelects() {
+        const s = document.getElementById('inpMonth');
+        s.innerHTML = '<option value="">選択してください</option>';
+        for (let i = 0; i < 3; i++) {
+          let y = curYear,
+            m = curMonth + i;
+          if (m > 12) {
+            m -= 12;
+            y++;
+          }
+          s.innerHTML += `<option value="${y}年${m}月">${y}年${m}月</option>`;
+        }
+      }
+
+      function updateStaffUI() {
+        const s = document.getElementById('inpName');
+        const cur = s.value;
+        s.innerHTML = '<option value="">選択してください</option>';
+        staffList.forEach((n) => (s.innerHTML += `<option value="${n}">${n}</option>`));
+        s.value = cur;
+
+        const sl = document.getElementById('staffList');
+        sl.innerHTML = staffList
+          .map((n, i) => {
+            const profile = getStaffProfile(n);
+            const dailyTransport = getDailyTransport(profile);
+            const unitTotal = getDailyUnitTotal(profile);
+            return `
+              <div style="border: 1px solid var(--bd); border-radius: 12px; padding: 12px; margin-bottom: 12px; background: #fafcfb;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+                  <div style="font-weight:900; color:var(--gd)">👤 ${n}</div>
+                  <button class="btn-action btn-danger" style="padding:4px 10px;font-size:.75rem" onclick="delStaff(${i})">削除</button>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-bottom:10px;">
+                  <label style="font-size:.78rem; color:var(--sub)">出勤単価（1日）
+                    <input type="number" id="sp_rate_${i}" placeholder="例 8000" value="${Number(profile.dailyRate || 0) || ''}" style="margin-top:4px">
+                  </label>
+                  <label style="font-size:.78rem; color:var(--sub)">片道距離（km）
+                    <input type="number" step="0.1" id="sp_dist_${i}" placeholder="例 12" value="${Number(profile.transportDistance || 0) || ''}" style="margin-top:4px">
+                  </label>
+                  <label style="font-size:.78rem; color:var(--sub)">交通費単価（円/km）
+                    <input type="number" step="0.1" id="sp_trans_${i}" placeholder="例 20" value="${Number(profile.transportRate || 0) || ''}" style="margin-top:4px">
+                  </label>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                  <div style="font-size:.8rem; color:var(--sub); line-height:1.7;">
+                    <div>日額交通費見込み：<strong style="color:var(--gd)">${formatYen(dailyTransport)}</strong></div>
+                    <div>1日合計見込み：<strong style="color:var(--gd)">${formatYen(unitTotal)}</strong></div>
+                  </div>
+                  <button class="btn-action" onclick="saveStaffProfileByIndex(${i})">保存</button>
+                </div>
+              </div>`;
+          })
+          .join('');
+      }
+
+      // --- UI Helpers ---
+      function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.style.display = 'block';
+        setTimeout(() => (t.style.display = 'none'), 2500);
+      }
+      function openModal(id) {
+        document.getElementById(id).classList.add('open');
+      }
+      function closeModal(id) {
+        document.getElementById(id).classList.remove('open');
+      }
+      function selRadio(el, pid) {
+        document.querySelectorAll(`#${pid} .opt-item`).forEach((i) => i.classList.remove('selected'));
+        el.classList.add('selected');
+        el.querySelector('input').checked = true;
+      }
+
+      // --- Input Tab ---
+      function calcProg() {
+        let d = 0;
+        if (document.getElementById('inpName').value) d++;
+        if (document.getElementById('inpMonth').value) d++;
+        const pat = document.querySelector('input[name="pattern"]:checked')?.value;
+        if (pat) d++;
+        let tot = 3;
+        if (pat === '個別に日付を選択する') {
+          tot = 4;
+          if (Object.keys(inputDates).length > 0) d++;
+        } else if (pat === 'ほぼ全日出勤可能') {
+          tot = 4;
+          if (document.querySelector('input[name="timeband"]:checked')) d++;
+        }
+
+        document.getElementById('progFill').style.width = Math.round((d / tot) * 100) + '%';
+      }
+
+      function onMonthChange() {
+        const v = document.getElementById('inpMonth').value;
+        if (!v) return;
+        const m = v.match(/(\d+)年(\d+)月/);
+        inpYear = parseInt(m[1]);
+        inpMonth = parseInt(m[2]);
+        inputDates = {};
+        renderInpCal();
+        calcProg();
+      }
+
+      function toggleCal() {
+        const pat = document.querySelector('input[name="pattern"]:checked')?.value;
+        document.getElementById('calSection').style.display = pat === '個別に日付を選択する' ? 'block' : 'none';
+        document.getElementById('tbSection').style.display = pat === 'ほぼ全日出勤可能' ? 'block' : 'none';
+        if (pat === '個別に日付を選択する' && !document.getElementById('inpMonth').value) {
+          showToast('先に対象月を選択してください');
+        }
+        calcProg();
+      }
+
+      function renderInpCal() {
+        document.getElementById('icMonth').textContent = `${inpYear}年${inpMonth}月`;
+        document.getElementById('icCount').textContent = `${Object.keys(inputDates).length}日選択中`;
+        const grid = document.getElementById('icGrid');
+        grid.innerHTML = '';
+        const first = new Date(inpYear, inpMonth - 1, 1).getDay();
+        const last = new Date(inpYear, inpMonth, 0).getDate();
+        for (let i = 0; i < first; i++) grid.innerHTML += '<div class="cal-cell empty"></div>';
+        for (let d = 1; d <= last; d++) {
+          const v = inputDates[`${d}日`];
+          let html = `<div class="cal-cell ${v ? 'chk' : ''}" onclick="openTp(${d})"><div class="cn">${d}</div>`;
+          if (v) html += `<div class="ct">${v.slice(0, 2)}</div>`;
+          html += '</div>';
+          grid.innerHTML += html;
+        }
+      }
+
+      function openTp(d) {
+        pickingDay = d;
+        document.getElementById('tpTitle').textContent = `${inpMonth}月${d}日 の時間帯`;
+        document.getElementById('tpCustom').style.display = 'none';
+        openModal('timepickModal');
+      }
+      function setCellTime(val) {
+        if (val) inputDates[`${pickingDay}日`] = val;
+        else delete inputDates[`${pickingDay}日`];
+        closeModal('timepickModal');
+        renderInpCal();
+        calcProg();
+      }
+      function setCellCustom() {
+        const s = document.getElementById('tpcS').value;
+        const e = document.getElementById('tpcE').value;
+        if (s && e) setCellTime(`カスタム(${s}~${e})`);
+      }
+      function icSelectAll() {
+        const last = new Date(inpYear, inpMonth, 0).getDate();
+        for (let d = 1; d <= last; d++) if (!inputDates[`${d}日`]) inputDates[`${d}日`] = '時間帯は問わない';
+        renderInpCal();
+        calcProg();
+      }
+      function icClearAll() {
+        inputDates = {};
+        renderInpCal();
+        calcProg();
+      }
+
+      async function submitForm() {
+        const name = document.getElementById('inpName').value;
+        const month = normalizeMonthValue(document.getElementById('inpMonth').value);
+        const pat = document.querySelector('input[name="pattern"]:checked')?.value;
+        if (!name || !month || !pat) {
+          showToast('必須項目を入力してください');
+          return;
+        }
+        if (pat === '個別に日付を選択する' && Object.keys(inputDates).length === 0) {
+          showToast('日付を選択してください');
+          return;
+        }
+
+        let tb = '';
+        if (pat === 'ほぼ全日出勤可能') {
+          const tbc = document.querySelector('input[name="timeband"]:checked')?.value;
+          if (!tbc) {
+            showToast('希望時間帯を選択してください');
+            return;
+          }
+          if (tbc === 'カスタム') {
+            const s = document.getElementById('cStart').value,
+              e = document.getElementById('cEnd').value;
+            tb = `カスタム(${s}~${e})`;
+          } else tb = tbc;
+        }
+
+        const note = document.getElementById('inpNote').value;
+        const entry = {
+          id: editId || Date.now().toString(),
+          name,
+          month,
+          pattern: pat,
+          timeband: tb,
+          dateDetails: { ...inputDates },
+          note,
+          timestamp: new Date().toISOString(),
+        };
+
+        try {
+          await gasPost({ action: 'saveSubmission', entry });
+          if (editId) submissions = submissions.filter((s) => s.id !== editId);
+          else submissions = submissions.filter((s) => !(s.name === name && s.month === month));
+          submissions.push(entry);
+          saveDB();
+          updateBanner();
+          renderViews();
+          document.getElementById('compOverlay').classList.add('open');
+          loadRemoteData(false);
+        } catch (err) {
+          console.error(err);
+          showToast('送信に失敗しました');
+        }
+      }
+
+      function resetForm() {
+        editId = null;
+        document.getElementById('inpName').value = '';
+        document.getElementById('inpMonth').value = '';
+        document.getElementById('inpNote').value = '';
+        document.querySelectorAll('input[type=radio]').forEach((r) => (r.checked = false));
+        document.querySelectorAll('.opt-item').forEach((i) => i.classList.remove('selected'));
+        inputDates = {};
+        document.getElementById('calSection').style.display = 'none';
+        document.getElementById('tbSection').style.display = 'none';
+        calcProg();
+        window.scrollTo(0, 0);
+      }
+
+      function closeComp() {
+        document.getElementById('compOverlay').classList.remove('open');
+        resetForm();
+      }
+
+      function updateBanner() {
+        const b = document.getElementById('bannerHist');
+        b.style.display = submissions.length > 0 ? 'block' : 'none';
+      }
+
+      function openHist() {
+        const h = document.getElementById('histList');
+        if (submissions.length === 0) {
+          h.innerHTML = 'データがありません';
+        } else {
+          h.innerHTML = submissions
+            .sort((a, b) => b.id - a.id)
+            .map(
+              (s) => `
+      <div class="hist-card">
+        <div style="font-weight:900;color:var(--gd)">${s.name} - ${s.month}</div>
+        <div style="font-size:.8rem;color:var(--sub);margin:5px 0">${s.pattern}</div>
+        <div style="display:flex;gap:10px;margin-top:10px">
+          <button class="btn-action" style="flex:1;font-size:.8rem" onclick="editHist('${s.id}')">✏️ 編集</button>
+          <button class="btn-action btn-danger" style="flex:1;font-size:.8rem" onclick="delHist('${s.id}')">🗑️ 削除</button>
+        </div>
+      </div>
+    `,
+            )
+            .join('');
+        }
+        openModal('histModal');
+      }
+
+      async function delHist(id) {
+        if (confirm('削除しますか？')) {
+          try {
+            await gasPost({ action: 'deleteSubmission', id });
+            submissions = submissions.filter((s) => s.id !== id);
+            saveDB();
+            openHist();
+            updateBanner();
+            renderViews();
+            showToast('削除しました');
+          } catch (err) {
+            console.error(err);
+            showToast('削除に失敗しました');
+          }
+        }
+      }
+      function editHist(id) {
+        const s = submissions.find((x) => x.id === id);
+        if (!s) return;
+        closeModal('histModal');
+        editId = id;
+        const normalizedMonth = normalizeMonthValue(s.month);
+        document.getElementById('inpName').value = s.name;
+        document.getElementById('inpMonth').value = normalizedMonth;
+        const m = normalizedMonth.match(/(\d+)年(\d+)月/);
+        inpYear = parseInt(m[1]);
+        inpMonth = parseInt(m[2]);
+
+        document.querySelectorAll('input[name="pattern"]').forEach((r) => {
+          r.checked = r.value === s.pattern;
+          if (r.checked) r.parentElement.classList.add('selected');
+          else r.parentElement.classList.remove('selected');
+        });
+
+        if (s.pattern === '個別に日付を選択する') {
+          inputDates = { ...s.dateDetails };
+          renderInpCal();
+        }
+        if (s.pattern === 'ほぼ全日出勤可能') {
+          document.querySelectorAll('input[name="timeband"]').forEach((r) => {
+            r.checked = r.value === s.timeband;
+            if (r.checked) r.parentElement.classList.add('selected');
+            else r.parentElement.classList.remove('selected');
+          });
+        }
+        document.getElementById('inpNote').value = s.note || '';
+        toggleCal();
+      }
+
+      // --- Admin / Calendar Common ---
+      function getDayData(y, m) {
+        const map = {};
+        const target = `${y}年${m}月`;
+        submissions
+          .filter((s) => normalizeMonthValue(s.month) === target)
+          .forEach((s) => {
+            if (s.pattern === '個別に日付を選択する') {
+              Object.entries(s.dateDetails).forEach(([dt, tb]) => {
+                const d = parseInt(dt);
+                if (!map[d]) map[d] = [];
+                map[d].push({ name: s.name, tb, sudden: false });
+              });
+            } else if (s.pattern === 'ほぼ全日出勤可能') {
+              const last = new Date(y, m, 0).getDate();
+              for (let d = 1; d <= last; d++) {
+                if (!map[d]) map[d] = [];
+                map[d].push({ name: s.name, tb: s.timeband, sudden: false });
+              }
+            }
+          });
+        return map;
+      }
+
+      function buildGridHtml(gridId, y, m, dayMap, isAdmin) {
+        const grid = document.getElementById(gridId);
+        grid.innerHTML = '';
+        const first = new Date(y, m - 1, 1).getDay();
+        const last = new Date(y, m, 0).getDate();
+        for (let i = 0; i < first; i++) grid.innerHTML += `<div class="${isAdmin ? 'adm-cell' : 'cal-cell'} empty"></div>`;
+        for (let d = 1; d <= last; d++) {
+          const list = dayMap[d] || [];
+          const n = list.length;
+          const plan = getWorkPlan(y, m, d);
+          const hasPlan = Boolean(plan.task || plan.requiredPeople || plan.memo);
+          let cls = n === 0 ? 'n0' : n === 1 ? 'n1' : n === 2 ? 'n2' : n === 3 ? 'n3' : n === 4 ? 'n4' : 'n5p';
+          let html = '';
+          if (isAdmin) {
+            html = `<div class="adm-cell ${cls}" onclick="openDay(${y},${m},${d},true)">
+        <div class="cn">${d}</div><div class="ac-n">${n > 0 ? n : '-'}</div>
+        ${hasPlan ? '<div style="margin-top:4px;font-size:.62rem;color:var(--orange);font-weight:900">🗂 作業あり</div>' : ''}
+      </div>`;
+          } else {
+            let t = n > 0 ? `<span style="color:var(--gd);font-weight:900;font-size:.8rem">${n}人</span>` : '';
+            html = `<div class="cal-cell ${cls}" onclick="openDay(${y},${m},${d},false)">
+        <div class="cn">${d}</div>${t}
+      </div>`;
+          }
+          grid.innerHTML += html;
+        }
+      }
+
+      function renderViews() {
+        const dmap = getDayData(viewYear, viewMonth);
+        document.getElementById('pubMonthLabel').textContent = `${viewYear}年${viewMonth}月`;
+        document.getElementById('admMonthLabel').textContent = `${viewYear}年${viewMonth}月`;
+        buildGridHtml('pubGrid', viewYear, viewMonth, dmap, false);
+        buildGridHtml('admGrid', viewYear, viewMonth, dmap, true);
+
+        let tot = 0,
+          ustaff = new Set();
+        const dayCountMap = {};
+        Object.values(dmap).forEach((list) => {
+          tot += list.length;
+          list.forEach((item) => {
+            ustaff.add(item.name);
+            dayCountMap[item.name] = (dayCountMap[item.name] || 0) + 1;
+          });
+        });
+
+        const plannedTaskCount = Object.keys(workPlans).filter((key) => key.startsWith(`${viewYear}-${String(viewMonth).padStart(2, '0')}-`)).length;
+
+        document.getElementById('admSummary').innerHTML = `
+    <div style="display:flex;gap:10px;text-align:center;flex-wrap:wrap">
+      <div style="flex:1;background:var(--gp);padding:10px;border-radius:10px;min-width:120px">
+        <div style="font-size:1.5rem;font-weight:900;color:var(--gd)">${tot}</div>
+        <div style="font-size:.7rem;color:var(--sub)">延べ出勤数</div>
+      </div>
+      <div style="flex:1;background:var(--gb);padding:10px;border-radius:10px;min-width:120px">
+        <div style="font-size:1.5rem;font-weight:900;color:var(--gd)">${ustaff.size}</div>
+        <div style="font-size:.7rem;color:var(--sub)">稼働スタッフ</div>
+      </div>
+      <div style="flex:1;background:#fff8e8;padding:10px;border-radius:10px;min-width:120px">
+        <div style="font-size:1.5rem;font-weight:900;color:var(--orange)">${plannedTaskCount}</div>
+        <div style="font-size:.7rem;color:var(--sub)">作業計画日数</div>
+      </div>
+    </div>`;
+
+        const billingRows = Object.entries(dayCountMap)
+          .sort((a, b) => a[0].localeCompare(b[0], 'ja'))
+          .map(([name, days]) => {
+            const profile = getStaffProfile(name);
+            const dailyRate = Number(profile.dailyRate || 0);
+            const dailyTransport = getDailyTransport(profile);
+            const monthlyTotal = days * (dailyRate + dailyTransport);
+            return {
+              name,
+              days,
+              dailyRate,
+              dailyTransport,
+              monthlyTotal,
+            };
+          });
+
+        const grandTotal = billingRows.reduce((sum, row) => sum + row.monthlyTotal, 0);
+        document.getElementById('admBilling').innerHTML = billingRows.length
+          ? `
+            <div style="display:grid;gap:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;background:var(--gp);padding:10px 12px;border-radius:10px;font-weight:800;color:var(--gd)">
+                <span>月間見込み合計</span>
+                <span>${formatYen(grandTotal)}</span>
+              </div>
+              ${billingRows
+                .map(
+                  (row) => `
+                    <div style="border:1px solid var(--bd);border-radius:10px;padding:10px;background:#fafcfb">
+                      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+                        <strong style="color:var(--gd)">${row.name}</strong>
+                        <span style="font-size:.82rem;color:var(--sub)">${row.days}日予定</span>
+                      </div>
+                      <div style="font-size:.8rem;color:var(--sub);line-height:1.7">
+                        <div>出勤単価：${formatYen(row.dailyRate)} / 日</div>
+                        <div>交通費：${formatYen(row.dailyTransport)} / 日</div>
+                        <div>月間見込み：<strong style="color:var(--gd)">${formatYen(row.monthlyTotal)}</strong></div>
+                      </div>
+                    </div>`,
+                )
+                .join('')}
+            </div>`
+          : `<div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この月は 0 件の出勤予定があります。単価設定後、ここに精算見込みが表示されます。</div>`;
+      }
+
+      function changePubMonth(v) {
+        viewMonth += v;
+        if (viewMonth > 12) {
+          viewMonth = 1;
+          viewYear++;
+        }
+        if (viewMonth < 1) {
+          viewMonth = 12;
+          viewYear--;
+        }
+        renderViews();
+      }
+      function changeAdmMonth(v) {
+        changePubMonth(v);
+      }
+
+      // --- Day Modal ---
+      let curDayParams = {};
+      function openDay(y, m, d, isAdmin) {
+        curDayParams = { y, m, d };
+        const list = getDayData(y, m)[d] || [];
+        const plan = getWorkPlan(y, m, d);
+        const isManagerView = isAdmin && adminUnlocked;
+        document.getElementById('dmTitle').textContent = `${m}月${d}日`;
+        document.getElementById('dmSummary').innerHTML = `
+          <span>👥 出勤予定：${list.length}人</span>
+          ${isManagerView && plan.requiredPeople ? `<span style="font-size:.85rem;color:var(--orange)">🗂 必要人数メモ：${plan.requiredPeople}</span>` : ''}
+        `;
+        document.getElementById('dayStaffList').innerHTML =
+          list.length === 0
+            ? '<div style="text-align:center;color:var(--sub);padding:20px">予定なし</div>'
+            : list
+                .map(
+                  (s) => `
+      <div class="staff-item" style="background:var(--gb);border-radius:8px;border:none">
+        <span class="si-name" style="font-weight:700">👤 ${s.name} ${s.sudden ? '(急遽)' : ''}</span>
+        ${isManagerView ? `<span class="si-time" style="font-size:.8rem;color:var(--gm);background:#fff;padding:2px 8px;border-radius:10px">${s.tb}</span>` : ''}
+      </div>`,
+                )
+                .join('');
+
+        document.getElementById('dmAdminArea').style.display = isManagerView ? 'block' : 'none';
+        if (isManagerView) {
+          document.getElementById('dmTaskHeadcount').value = plan.requiredPeople || '';
+          document.getElementById('dmTaskText').value = plan.task || '';
+          document.getElementById('dmTaskMemo').value = plan.memo || '';
+        }
+        openModal('dayModal');
+      }
+
+      async function addSudden() {
+        const n = document.getElementById('dmAddName').value;
+        const t = document.getElementById('dmAddTime').value;
+        if (!n) return;
+        const { y, m, d } = curDayParams;
+        const entry = {
+          id: Date.now().toString(),
+          name: n,
+          month: `${y}年${m}月`,
+          pattern: '個別に日付を選択する',
+          dateDetails: { [`${d}日`]: t },
+          note: '急遽追加',
+          timestamp: new Date().toISOString(),
+        };
+        try {
+          await gasPost({ action: 'saveSubmission', entry });
+          submissions.push(entry);
+          saveDB();
+          document.getElementById('dmAddName').value = '';
+          renderViews();
+          openDay(y, m, d, true);
+          loadRemoteData(false);
+        } catch (err) {
+          console.error(err);
+          showToast('急遽参加者の追加に失敗しました');
+        }
+      }
+
+      async function saveWorkPlan() {
+        const { y, m, d } = curDayParams;
+        const plan = {
+          requiredPeople: document.getElementById('dmTaskHeadcount').value.trim(),
+          task: document.getElementById('dmTaskText').value.trim(),
+          memo: document.getElementById('dmTaskMemo').value.trim(),
+        };
+        if (!plan.requiredPeople && !plan.task && !plan.memo) {
+          showToast('作業計画を入力してください');
+          return;
+        }
+        try {
+          await gasPost({ action: 'saveSubmission', entry: buildWorkPlanEntry(y, m, d, plan) });
+          workPlans[getDateKey(y, m, d)] = plan;
+          saveDB();
+          renderViews();
+          openDay(y, m, d, true);
+          showToast('作業計画を保存しました');
+        } catch (err) {
+          console.error(err);
+          showToast('作業計画の保存に失敗しました');
+        }
+      }
+
+      async function deleteWorkPlan() {
+        const { y, m, d } = curDayParams;
+        const dateKey = getDateKey(y, m, d);
+        if (!workPlans[dateKey]) {
+          showToast('削除する作業計画がありません');
+          return;
+        }
+        if (!confirm('この日の作業計画を削除しますか？')) return;
+        try {
+          await gasPost({ action: 'deleteSubmission', id: `work_plan_${dateKey}` });
+          delete workPlans[dateKey];
+          saveDB();
+          renderViews();
+          openDay(y, m, d, true);
+          showToast('作業計画を削除しました');
+        } catch (err) {
+          console.error(err);
+          showToast('作業計画の削除に失敗しました');
+        }
+      }
+
+      // --- Admin Functions ---
+      function checkPin() {
+        if (document.getElementById('pinInput').value === adminPin) {
+          adminUnlocked = true;
+          document.getElementById('pinOverlay').classList.remove('open');
+          document.getElementById('pinInput').value = '';
+          renderViews();
+        } else {
+          showToast('PINが違います');
+        }
+      }
+      function cancelPin() {
+        document.getElementById('pinOverlay').classList.remove('open');
+        document.getElementById('pinInput').value = '';
+        switchTab('pub');
+      }
+      async function saveStaffProfileByIndex(i) {
+        const name = staffList[i];
+        if (!name) return;
+
+        const profile = {
+          name,
+          dailyRate: Number(document.getElementById(`sp_rate_${i}`)?.value || 0),
+          transportDistance: Number(document.getElementById(`sp_dist_${i}`)?.value || 0),
+          transportRate: Number(document.getElementById(`sp_trans_${i}`)?.value || 0),
+        };
+
+        staffProfiles = staffProfiles.filter((item) => item.name !== name);
+        staffProfiles.push(profile);
+
+        try {
+          await gasPost({ action: 'saveSubmission', entry: buildStaffProfileEntry(profile) });
+          saveDB();
+          updateStaffUI();
+          renderViews();
+          showToast(`${name} の精算設定を保存しました`);
+          loadRemoteData(false);
+        } catch (err) {
+          console.error(err);
+          showToast('精算設定の保存に失敗しました');
+        }
+      }
+      async function changePin() {
+        const np = document.getElementById('newPin').value;
+        if (np.length === 4) {
+          try {
+            await gasPost({ action: 'savePin', pin: np });
+            adminPin = np;
+            saveDB();
+            showToast('PINを変更しました');
+            document.getElementById('newPin').value = '';
+          } catch (err) {
+            console.error(err);
+            showToast('PIN変更に失敗しました');
+          }
+        } else showToast('4桁で入力してください');
+      }
+      async function addStaff() {
+        const n = document.getElementById('newStaff').value.trim();
+        if (n) {
+          try {
+            if (!staffList.includes(n)) staffList.push(n);
+            mergeStaffProfiles(staffList, staffProfiles);
+            await gasPost({ action: 'saveStaff', staffList });
+            saveDB();
+            document.getElementById('newStaff').value = '';
+            updateStaffUI();
+            showToast('追加しました');
+          } catch (err) {
+            console.error(err);
+            showToast('スタッフ追加に失敗しました');
+          }
+        }
+      }
+      async function delStaff(i) {
+        if (confirm('削除しますか？')) {
+          try {
+            const removedName = staffList[i];
+            staffList.splice(i, 1);
+            staffProfiles = staffProfiles.filter((profile) => profile.name !== removedName);
+            await gasPost({ action: 'saveStaff', staffList });
+            saveDB();
+            updateStaffUI();
+            renderViews();
+            showToast('削除しました');
+          } catch (err) {
+            console.error(err);
+            showToast('スタッフ削除に失敗しました');
+            await loadRemoteData(false);
+          }
+        }
+      }
+      async function delMonthData() {
+        const target = `${viewYear}年${viewMonth}月`;
+        if (confirm(`${target} のデータを削除しますか？`)) {
+          try {
+            await gasPost({ action: 'deleteMonth', month: target });
+            submissions = submissions.filter((s) => s.month !== target);
+            saveDB();
+            renderViews();
+            showToast('削除しました');
+          } catch (err) {
+            console.error(err);
+            showToast('月データ削除に失敗しました');
+          }
+        }
+      }
+      async function resetAll() {
+        if (confirm('本当に全データを削除しますか？')) {
+          try {
+            await gasPost({ action: 'resetAll' });
+            localStorage.clear();
+            location.reload();
+          } catch (err) {
+            console.error(err);
+            showToast('初期化に失敗しました');
+          }
+        }
+      }
+
+      // --- Exports ---
+      function exportCSV() {
+        const dmap = getDayData(viewYear, viewMonth);
+        let csv = '\uFEFF日付,人数,氏名一覧\n';
+        const last = new Date(viewYear, viewMonth, 0).getDate();
+        for (let d = 1; d <= last; d++) {
+          const list = dmap[d] || [];
+          const names = list.map((s) => s.name).join(' / ');
+          csv += `${d}日,${list.length},"${names}"\n`;
+        }
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+        a.download = `シフト_${viewYear}年${viewMonth}月.csv`;
+        a.click();
+      }
+      function exportText() {
+        const dmap = getDayData(viewYear, viewMonth);
+        let txt = `■ ${viewYear}年${viewMonth}月 シフト\n`;
+        const last = new Date(viewYear, viewMonth, 0).getDate();
+        for (let d = 1; d <= last; d++) {
+          const list = dmap[d] || [];
+          if (list.length > 0) {
+            txt += `${d}日: ${list.length}名\n  ` + list.map((s) => `${s.name}(${s.tb})`).join('\n  ') + '\n\n';
+          }
+        }
+        navigator.clipboard.writeText(txt);
+        showToast('クリップボードにコピーしました');
+      }
+
+      // --- Tab & View Control ---
+      function switchTab(t) {
+        if (t === 'mgr' && !adminUnlocked) {
+          document.getElementById('pinOverlay').classList.add('open');
+          return;
+        }
+        document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+        document.getElementById(`tab-${t}`).classList.add('active');
+
+        const clickedBtn = typeof event !== 'undefined' ? event.currentTarget : null;
+        if (clickedBtn) clickedBtn.classList.add('active');
+        else {
+          const idx = t === 'input' ? 0 : t === 'pub' ? 1 : 2;
+          document.querySelectorAll('.tab-btn')[idx]?.classList.add('active');
+        }
+
+        if (t === 'mgr' || t === 'pub') {
+          renderViews();
+          loadRemoteData(false);
+        }
+      }
+
+      function checkDesktopView() {
+        const mode = document.getElementById('viewMode')?.value || 'auto';
+        let isDesktop = false;
+        if (mode === 'desktop') isDesktop = true;
+        else if (mode === 'auto' && window.innerWidth >= 1024) isDesktop = true;
+
+        if (isDesktop) document.body.classList.add('admin-view-desktop');
+        else document.body.classList.remove('admin-view-desktop');
+      }
+
+      function changeViewMode() {
+        checkDesktopView();
+      }
+    </script>
+  
+
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body></html>
