@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ホスティング方法ガイド</title>
+<style>
+:root{
+  --gd:#1B4332;--gm:#2D6A4F;--gg:#40916C;--gl:#74C69D;--gp:#D8F3DC;--gb:#F0F7F4;
+  --gold:#D4A017;--red:#C0392B;--orange:#E67E22;--blue:#0077B6;
+  --fn:'Noto Sans JP','Hiragino Kaku Gothic ProN','メイリオ',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--fn);background:#F5F5F0;color:#1A1A1A;line-height:1.6}
+.cover{background:linear-gradient(135deg,#1a237e,var(--blue));padding:40px 24px 32px;text-align:center;color:#fff}
+.cover .logo{font-size:3rem;margin-bottom:10px}
+.cover h1{font-size:1.4rem;font-weight:900;margin-bottom:6px}
+.cover p{font-size:.85rem;color:#BBDEFB;line-height:1.7}
+.badge-row{display:flex;justify-content:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+.badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:4px 14px;font-size:.72rem;color:#fff}
+.content{max-width:680px;margin:0 auto;padding:24px 16px}
+.section{margin-bottom:28px}
+.section-title{font-size:1.05rem;font-weight:900;color:var(--gd);margin-bottom:14px;display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:2px solid var(--gp)}
+/* 方法カード */
+.method-card{background:#fff;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,.08);margin-bottom:18px;overflow:hidden}
+.method-head{padding:16px 18px;display:flex;align-items:center;gap:12px}
+.method-head.netlify{background:linear-gradient(135deg,#00AD9F,#00C7B7)}
+.method-head.github{background:linear-gradient(135deg,#24292e,#444)}
+.method-head.gdrive{background:linear-gradient(135deg,#1565C0,var(--blue))}
+.method-icon{font-size:2rem;flex-shrink:0}
+.method-title{color:#fff}
+.method-title h3{font-size:1rem;font-weight:900;margin-bottom:2px}
+.method-title .mt-sub{font-size:.75rem;opacity:.85}
+.rec-badge{background:rgba(255,215,0,.3);border:1px solid rgba(255,215,0,.6);color:#fff;border-radius:20px;padding:3px 10px;font-size:.68rem;font-weight:700;margin-left:auto;flex-shrink:0}
+.method-body{padding:16px 18px}
+.rating-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.rating-pill{display:flex;align-items:center;gap:4px;background:var(--gb);border-radius:20px;padding:4px 10px;font-size:.73rem;color:var(--gd)}
+.rating-pill .rp-val{font-weight:800}
+.rating-pill.good .rp-val{color:var(--gg)}
+.rating-pill.bad .rp-val{color:var(--red)}
+.steps-list{list-style:none;padding:0;margin:0}
+.steps-list li{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:.85rem;color:#333;line-height:1.6}
+.steps-list li:last-child{border:none}
+.sl-num{width:24px;height:24px;background:var(--gg);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0;margin-top:1px}
+.code-inline{background:#f0f0f0;padding:2px 7px;border-radius:4px;font-family:monospace;font-size:.82rem}
+.tip{background:#FFF8E7;border-left:4px solid var(--gold);border-radius:0 9px 9px 0;padding:10px 14px;margin:10px 0}
+.tip .tip-title{font-size:.78rem;font-weight:700;color:#7A5200;margin-bottom:4px}
+.tip p{font-size:.82rem;color:#5A3800;line-height:1.6}
+.warn{background:#FFF0F0;border-left:4px solid var(--red);border-radius:0 9px 9px 0;padding:10px 14px;margin:10px 0}
+.warn p{font-size:.82rem;color:#8B0000;line-height:1.6}
+.url-box{background:#1e1e1e;color:#98FB98;border-radius:9px;padding:10px 14px;font-family:monospace;font-size:.78rem;margin:10px 0;word-break:break-all}
+/* 比較表 */
+.compare-table{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:10px}
+.compare-table th{background:var(--gd);color:#fff;padding:9px 12px;text-align:center;font-weight:700}
+.compare-table td{padding:9px 12px;border-bottom:1px solid #e0e0e0;text-align:center;vertical-align:middle}
+.compare-table tr:nth-child(even) td{background:#F8F8F5}
+.mark-good{color:var(--gg);font-weight:800;font-size:1rem}
+.mark-mid{color:var(--orange);font-weight:800}
+.mark-bad{color:var(--red);font-weight:800}
+/* PWAインストール */
+.pwa-card{background:linear-gradient(135deg,var(--gd),var(--gm));border-radius:14px;padding:20px 18px;margin-bottom:18px;color:#fff}
+.pwa-card h3{font-size:1rem;font-weight:900;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.pwa-step{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.pws-ico{font-size:1.3rem;flex-shrink:0;margin-top:1px}
+.pws-text{font-size:.83rem;color:#B7E4C7;line-height:1.5}
+.pws-text strong{color:#fff}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="logo">🌐</div>
+  <h1>ホスティング方法ガイド</h1>
+  <p>農業パート シフト管理システム<br>スタッフが使えるようにアプリを公開する方法（管理者向け）</p>
+  <div class="badge-row">
+    <span class="badge">💰 全て無料プランで可能</span>
+    <span class="badge">📱 スマホ対応</span>
+    <span class="badge">🔒 HTTPS対応</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- 比較表 -->
+  <div class="section">
+    <div class="section-title">📊 方法の比較一覧</div>
+    <div style="overflow-x:auto;background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.07);padding:4px">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>方法</th>
+            <th>難易度</th>
+            <th>速度</th>
+            <th>無料</th>
+            <th>URL取得</th>
+            <th>おすすめ度</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>① Netlify</strong></td>
+            <td><span class="mark-good">★★☆☆☆</span></td>
+            <td><span class="mark-good">高速</span></td>
+            <td><span class="mark-good">✅ 無料</span></td>
+            <td><span class="mark-good">即座</span></td>
+            <td>⭐⭐⭐⭐⭐</td>
+          </tr>
+          <tr>
+            <td><strong>② GitHub Pages</strong></td>
+            <td><span class="mark-mid">★★★☆☆</span></td>
+            <td><span class="mark-good">高速</span></td>
+            <td><span class="mark-good">✅ 無料</span></td>
+            <td>数分</td>
+            <td>⭐⭐⭐⭐</td>
+          </tr>
+          <tr>
+            <td><strong>③ Googleドライブ共有</strong></td>
+            <td><span class="mark-good">★☆☆☆☆</span></td>
+            <td><span class="mark-mid">普通</span></td>
+            <td><span class="mark-good">✅ 無料</span></td>
+            <td>即座</td>
+            <td>⭐⭐⭐</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 方法1: Netlify -->
+  <div class="section">
+    <div class="section-title">🏆 方法 ① Netlify（最もおすすめ）</div>
+
+    <div class="method-card">
+      <div class="method-head netlify">
+        <div class="method-icon">⚡</div>
+        <div class="method-title">
+          <h3>Netlify Drop</h3>
+          <div class="mt-sub">ファイルをドロップするだけで公開できる最速の方法</div>
+        </div>
+        <span class="rec-badge">👑 イチオシ</span>
+      </div>
+      <div class="method-body">
+        <div class="rating-row">
+          <div class="rating-pill good"><span>⏱️</span><span class="rp-val">所要時間：2〜3分</span></div>
+          <div class="rating-pill good"><span>💰</span><span class="rp-val">完全無料</span></div>
+          <div class="rating-pill good"><span>🔒</span><span class="rp-val">HTTPS自動</span></div>
+          <div class="rating-pill good"><span>📱</span><span class="rp-val">PWA対応</span></div>
+        </div>
+        <ol class="steps-list">
+          <li>
+            <div class="sl-num">1</div>
+            <div>ブラウザで <span class="code-inline">netlify.com/drop</span> にアクセス（アカウント不要）</div>
+          </li>
+          <li>
+            <div class="sl-num">2</div>
+            <div>配布ZIPを解凍して中身のフォルダ（<span class="code-inline">シフトWebアプリ</span>）を画面中央の点線エリアにドラッグ＆ドロップ</div>
+          </li>
+          <li>
+            <div class="sl-num">3</div>
+            <div>アップロードが完了すると自動的に <span class="code-inline">https://XXXX.netlify.app</span> 形式のURLが発行される</div>
+          </li>
+          <li>
+            <div class="sl-num">4</div>
+            <div>そのURLをスタッフにLINEやメールで共有するだけで完了！</div>
+          </li>
+        </ol>
+        <div class="url-box">https://例）cheerful-fox-12345.netlify.app</div>
+        <div class="tip">
+          <div class="tip-title">💡 アカウント登録するとさらに便利</div>
+          <p>無料アカウントを作成すると、URLを自分でカスタマイズできたり、ファイルを更新（再デプロイ）したりできます。例：<span class="code-inline">https://shift-nogyopart.netlify.app</span></p>
+        </div>
+        <div class="warn">
+          <p>⚠️ アカウントなしの場合、URLは24時間後に失効します。アカウント登録（無料）をすると永久に使えます。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 方法2: GitHub Pages -->
+  <div class="section">
+    <div class="section-title">🐙 方法 ② GitHub Pages</div>
+
+    <div class="method-card">
+      <div class="method-head github">
+        <div class="method-icon">🐙</div>
+        <div class="method-title">
+          <h3>GitHub Pages</h3>
+          <div class="mt-sub">GitHubのリポジトリから静的サイトを公開できる無料サービス</div>
+        </div>
+      </div>
+      <div class="method-body">
+        <div class="rating-row">
+          <div class="rating-pill"><span>⏱️</span><span class="rp-val">所要時間：5〜10分</span></div>
+          <div class="rating-pill good"><span>💰</span><span class="rp-val">完全無料</span></div>
+          <div class="rating-pill good"><span>🔒</span><span class="rp-val">HTTPS自動</span></div>
+        </div>
+        <ol class="steps-list">
+          <li>
+            <div class="sl-num">1</div>
+            <div><span class="code-inline">github.com</span> でアカウントを作成（無料）</div>
+          </li>
+          <li>
+            <div class="sl-num">2</div>
+            <div>「New repository」でリポジトリを新規作成（名前例：<span class="code-inline">shift-app</span>）</div>
+          </li>
+          <li>
+            <div class="sl-num">3</div>
+            <div>「uploading an existing file」リンクをクリックして <span class="code-inline">index.html</span> ほか全ファイルをアップロード</div>
+          </li>
+          <li>
+            <div class="sl-num">4</div>
+            <div>リポジトリの「Settings」→「Pages」→ Source: 「Deploy from a branch」→ Branch: 「main」→「Save」</div>
+          </li>
+          <li>
+            <div class="sl-num">5</div>
+            <div>数分後に <span class="code-inline">https://ユーザー名.github.io/shift-app/</span> でアクセス可能</div>
+          </li>
+        </ol>
+        <div class="url-box">https://あなたのユーザー名.github.io/shift-app/</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 方法3: Googleドライブ -->
+  <div class="section">
+    <div class="section-title">📁 方法 ③ Googleドライブ（最も手軽）</div>
+
+    <div class="method-card">
+      <div class="method-head gdrive">
+        <div class="method-icon">📁</div>
+        <div class="method-title">
+          <h3>Googleドライブ 直接共有</h3>
+          <div class="mt-sub">ドライブにアップして共有リンクを配布する方法</div>
+        </div>
+      </div>
+      <div class="method-body">
+        <div class="rating-row">
+          <div class="rating-pill good"><span>⏱️</span><span class="rp-val">所要時間：1〜2分</span></div>
+          <div class="rating-pill good"><span>💰</span><span class="rp-val">完全無料</span></div>
+          <div class="rating-pill bad"><span>⚠️</span><span class="rp-val">PWA非対応</span></div>
+        </div>
+        <ol class="steps-list">
+          <li>
+            <div class="sl-num">1</div>
+            <div><span class="code-inline">drive.google.com</span> に <span class="code-inline">index.html</span> をアップロード</div>
+          </li>
+          <li>
+            <div class="sl-num">2</div>
+            <div>ファイルを右クリック →「共有」→「リンクを知っている全員」に変更 →「リンクをコピー」</div>
+          </li>
+          <li>
+            <div class="sl-num">3</div>
+            <div>コピーしたURLをスタッフに共有</div>
+          </li>
+        </ol>
+        <div class="warn">
+          <p>⚠️ Googleドライブで共有したHTMLファイルはブラウザで表示されますが、Service Worker（オフライン機能・ホーム画面追加）は動作しません。通常の使用には問題ありません。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PWAインストール案内 -->
+  <div class="pwa-card">
+    <h3>📲 ホーム画面にアプリとして追加する方法</h3>
+    <div style="margin-bottom:12px;font-size:.83rem;color:#B7E4C7">NetlifyまたはGitHub Pagesでホスティングした場合、PWA機能が有効です。</div>
+    <div class="pwa-step">
+      <div class="pws-ico">🍎</div>
+      <div class="pws-text"><strong>iPhone（Safari）</strong><br>ページを開く → 下部の「共有」ボタン → 「ホーム画面に追加」</div>
+    </div>
+    <div class="pwa-step">
+      <div class="pws-ico">🤖</div>
+      <div class="pws-text"><strong>Android（Chrome）</strong><br>ページを開く → 右上の「⋮」→「ホーム画面に追加」またはバナーが自動表示</div>
+    </div>
+    <div class="pwa-step">
+      <div class="pws-ico">✅</div>
+      <div class="pws-text"><strong>追加後</strong><br>アプリアイコンとして表示され、フルスクリーンで起動できます。ネイティブアプリと同じ使い心地！</div>
+    </div>
+  </div>
+
+  <!-- URLの共有方法 -->
+  <div class="section">
+    <div class="section-title">📤 スタッフへのURL共有方法</div>
+    <div class="method-card">
+      <div class="method-body">
+        <p style="font-size:.87rem;margin-bottom:12px">公開URLが決まったら、以下の方法でスタッフに連絡しましょう。</p>
+        <ol class="steps-list">
+          <li><div class="sl-num">💬</div><div><strong>LINEグループで共有</strong>が最もおすすめ。URLをメッセージで送るだけです。</div></li>
+          <li><div class="sl-num">📱</div><div><strong>QRコードを作成</strong>して印刷配布。<span class="code-inline">qr.io</span> などの無料サービスでURLをQRコード化できます。</div></li>
+          <li><div class="sl-num">📧</div><div><strong>メールで送付</strong>する場合は、「ホーム画面に追加してください」とひと言添えると親切です。</div></li>
+        </ol>
+        <div class="tip">
+          <div class="tip-title">💡 スタッフへの案内文テンプレート</div>
+          <p>「農業パート用のシフト希望アプリを作成しました。こちらのURLからアクセスしてください：<br><span class="code-inline">【URL】</span><br>ホーム画面に追加するとアプリとして使えます。毎月20日までに入力をお願いします。」</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:24px 0;border-top:1px solid #e0e0e0;color:#888;font-size:.78rem">
+    <p>🌾 農業パート シフト管理システム - ホスティングガイド</p>
+  </div>
+</div>
+</body>
+</html>
