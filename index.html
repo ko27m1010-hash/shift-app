@@ -1109,7 +1109,7 @@
               <button class="btn-action" onclick="addStaff()">追加</button>
             </div>
             <div style="font-size: .78rem; color: var(--sub); margin-bottom: 12px; line-height: 1.6">
-              時給・片道距離・交通費単価（円/km）をスタッフごとに設定できます。交通費は <strong>片道距離 × 2 × 交通費単価</strong> で1勤務あたりの見込み額を自動計算します。
+              時給・片道距離・交通費単価（円/km）をスタッフごとに設定できます。交通費は <strong>片道距離 × 2 × 交通費単価</strong> で1勤務あたりの見込み額を自動計算します。名前変更もできます。削除すると、そのスタッフの希望・実績・精算設定もまとめて削除されます。
             </div>
             <div id="staffList"></div>
           </div>
@@ -1356,7 +1356,7 @@
           staffList = normalizedRemoteStaff;
           if (JSON.stringify(remoteStaff) !== JSON.stringify(normalizedRemoteStaff)) {
             try {
-              await gasPost({ action: 'saveStaff', staffList });
+              await gasPost({ action: 'saveStaff', staffList, staff: staffList });
             } catch (syncErr) {
               console.warn('スタッフ一覧の同期に失敗しました', syncErr);
             }
@@ -1490,6 +1490,22 @@
           note: '',
           timestamp: new Date().toISOString(),
         };
+      }
+
+      function getStaffProfileRecordId(name) {
+        return `cfg_staff_${encodeURIComponent(name)}`;
+      }
+
+      async function saveStaffListRemote() {
+        staffList = normalizeManagedStaffList(staffList, false);
+        await gasPost({ action: 'saveStaff', staffList, staff: staffList });
+      }
+
+      async function deleteRemoteEntriesByIds(ids = []) {
+        const uniqueIds = [...new Set(ids.map((id) => String(id || '').trim()).filter(Boolean))];
+        for (const id of uniqueIds) {
+          await gasPost({ action: 'deleteSubmission', id });
+        }
       }
 
       function mergeStaffProfiles(names, incomingProfiles = []) {
@@ -1692,7 +1708,10 @@
               <div style="border: 1px solid var(--bd); border-radius: 12px; padding: 12px; margin-bottom: 12px; background: #fafcfb;">
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
                   <div style="font-weight:900; color:var(--gd)">👤 ${n}</div>
-                  <button class="btn-action btn-danger" style="padding:4px 10px;font-size:.75rem" onclick="delStaff(${i})">削除</button>
+                  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn-action" style="padding:4px 10px;font-size:.75rem" onclick="renameStaff(${i})">名前変更</button>
+                    <button class="btn-action btn-danger" style="padding:4px 10px;font-size:.75rem" onclick="delStaff(${i})">削除</button>
+                  </div>
                 </div>
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-bottom:10px;">
                   <label style="font-size:.78rem; color:var(--sub)">時給（1時間）
@@ -2484,10 +2503,14 @@
         const n = document.getElementById('newStaff').value.trim();
         if (n) {
           try {
-            if (!staffList.includes(n)) staffList.push(n);
-            staffList = normalizeManagedStaffList(staffList, true);
+            if (staffList.includes(n)) {
+              showToast('同じ名前が既に登録されています');
+              return;
+            }
+            staffList.push(n);
+            staffList = normalizeManagedStaffList(staffList, false);
             mergeStaffProfiles(staffList, staffProfiles);
-            await gasPost({ action: 'saveStaff', staffList });
+            await saveStaffListRemote();
             saveDB();
             document.getElementById('newStaff').value = '';
             updateStaffUI();
@@ -2498,22 +2521,97 @@
           }
         }
       }
-      async function delStaff(i) {
-        if (confirm('削除しますか？')) {
-          try {
-            const removedName = staffList[i];
-            staffList.splice(i, 1);
-            staffProfiles = staffProfiles.filter((profile) => profile.name !== removedName);
-            await gasPost({ action: 'saveStaff', staffList });
-            saveDB();
-            updateStaffUI();
-            renderViews();
-            showToast('削除しました');
-          } catch (err) {
-            console.error(err);
-            showToast('スタッフ削除に失敗しました');
-            await loadRemoteData(false);
+      async function renameStaff(i) {
+        const oldName = String(staffList[i] || '').trim();
+        if (!oldName) return;
+
+        const nextName = prompt(`「${oldName}」の新しい名前を入力してください`, oldName);
+        if (nextName === null) return;
+
+        const newName = nextName.trim();
+        if (!newName) {
+          showToast('名前を入力してください');
+          return;
+        }
+        if (newName === oldName) {
+          showToast('名前は変更されていません');
+          return;
+        }
+        if (staffList.includes(newName)) {
+          showToast('同じ名前が既に登録されています');
+          return;
+        }
+
+        const relatedSubs = submissions.filter((item) => item.name === oldName);
+        const relatedActuals = actualWorks.filter((item) => item.name === oldName);
+        const oldProfile = getStaffProfile(oldName);
+
+        try {
+          staffList[i] = newName;
+          staffList = normalizeManagedStaffList(staffList, false);
+          submissions = submissions.map((item) => (item.name === oldName ? { ...item, name: newName } : item));
+          actualWorks = actualWorks
+            .map((item) => (item.name === oldName ? { ...item, name: newName, month: normalizeMonthValue(item.month || getMonthValueFromDate(item.date)) } : item))
+            .sort((a, b) => String(b.date).localeCompare(String(a.date), 'ja'));
+          staffProfiles = staffProfiles.map((profile) => (profile.name === oldName ? { ...profile, name: newName } : profile));
+          if (selfStaffName === oldName) selfStaffName = newName;
+          mergeStaffProfiles(staffList, staffProfiles);
+
+          await saveStaffListRemote();
+
+          for (const entry of relatedSubs) {
+            await gasPost({ action: 'saveSubmission', entry: { ...entry, name: newName, timestamp: new Date().toISOString() } });
           }
+          for (const entry of relatedActuals) {
+            await gasPost({ action: 'saveSubmission', entry: buildActualWorkEntry(newName, entry) });
+          }
+          if (oldProfile?.name) {
+            await gasPost({ action: 'saveSubmission', entry: buildStaffProfileEntry({ ...oldProfile, name: newName }) });
+            await deleteRemoteEntriesByIds([getStaffProfileRecordId(oldName)]);
+          }
+
+          saveDB();
+          updateStaffUI();
+          updateBanner();
+          renderViews();
+          showToast('名前を変更しました');
+          await loadRemoteData(false);
+        } catch (err) {
+          console.error(err);
+          showToast('名前変更に失敗しました');
+          await loadRemoteData(false);
+        }
+      }
+      async function delStaff(i) {
+        const removedName = String(staffList[i] || '').trim();
+        if (!removedName) return;
+        if (!confirm(`「${removedName}」を削除しますか？\nこのスタッフの希望・実績・精算設定も一緒に削除されます。`)) return;
+
+        const relatedSubmissionIds = submissions.filter((item) => item.name === removedName).map((item) => item.id);
+        const relatedActualIds = actualWorks.filter((item) => item.name === removedName).map((item) => item.id);
+
+        try {
+          staffList.splice(i, 1);
+          staffList = normalizeManagedStaffList(staffList, false);
+          staffProfiles = staffProfiles.filter((profile) => profile.name !== removedName);
+          submissions = submissions.filter((item) => item.name !== removedName);
+          actualWorks = actualWorks.filter((item) => item.name !== removedName);
+          if (selfStaffName === removedName) selfStaffName = '';
+          mergeStaffProfiles(staffList, staffProfiles);
+
+          await saveStaffListRemote();
+          await deleteRemoteEntriesByIds([...relatedSubmissionIds, ...relatedActualIds, getStaffProfileRecordId(removedName)]);
+
+          saveDB();
+          updateStaffUI();
+          updateBanner();
+          renderViews();
+          showToast('スタッフと関連データを削除しました');
+          await loadRemoteData(false);
+        } catch (err) {
+          console.error(err);
+          showToast('スタッフ削除に失敗しました');
+          await loadRemoteData(false);
         }
       }
       async function delMonthData() {
