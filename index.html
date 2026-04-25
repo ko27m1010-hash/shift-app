@@ -1274,7 +1274,7 @@
       const STAFF_PROFILE_PATTERN = '__staff_profile__';
       const WORK_PLAN_PATTERN = '__work_plan__';
       const ACTUAL_WORK_PATTERN = '__actual_work__';
-      let staffList = normalizeManagedStaffList(JSON.parse(localStorage.getItem('sf_staff')) || [...DEFAULT_STAFF]);
+      let staffList = normalizeManagedStaffList(JSON.parse(localStorage.getItem('sf_staff')) || [...DEFAULT_STAFF], true);
       let staffProfiles = JSON.parse(localStorage.getItem('sf_staff_profiles')) || DEFAULT_STAFF.map((name) => createDefaultStaffProfile(name));
       if (isLegacyStaffList(staffList)) staffList = [...DEFAULT_STAFF];
       if (!Array.isArray(staffProfiles) || isLegacyStaffList(staffProfiles.map((profile) => profile?.name))) {
@@ -1351,8 +1351,8 @@
         try {
           const data = await gasGet('list');
           if (!data?.ok) throw new Error(data?.message || '同期に失敗しました');
-          const remoteStaff = Array.isArray(data.staff) && data.staff.length ? data.staff : [...DEFAULT_STAFF];
-          const normalizedRemoteStaff = normalizeManagedStaffList(remoteStaff);
+          const remoteStaff = Array.isArray(data.staff) ? data.staff : [...DEFAULT_STAFF];
+          const normalizedRemoteStaff = normalizeManagedStaffList(remoteStaff, !Array.isArray(data.staff));
           staffList = normalizedRemoteStaff;
           if (JSON.stringify(remoteStaff) !== JSON.stringify(normalizedRemoteStaff)) {
             try {
@@ -1398,10 +1398,11 @@
         return names.length === LEGACY_DEFAULT_STAFF.length && names.every((name, index) => name === LEGACY_DEFAULT_STAFF[index]);
       }
 
-      function normalizeManagedStaffList(list) {
-        const names = Array.isArray(list) ? list.map((item) => String(item || '').trim()).filter(Boolean) : [];
-        const extras = names.filter((name) => !LEGACY_DEFAULT_STAFF.includes(name) && !DEFAULT_STAFF.includes(name));
-        return [...DEFAULT_STAFF, ...extras];
+      function normalizeManagedStaffList(list, fallbackToDefault = false) {
+        const names = Array.isArray(list)
+          ? [...new Set(list.map((item) => String(item || '').trim()).filter(Boolean).filter((name) => !LEGACY_DEFAULT_STAFF.includes(name)))]
+          : [];
+        return names.length ? names : fallbackToDefault ? [...DEFAULT_STAFF] : [];
       }
 
       function isLegacyPlaceholderName(name) {
@@ -2484,6 +2485,7 @@
         if (n) {
           try {
             if (!staffList.includes(n)) staffList.push(n);
+            staffList = normalizeManagedStaffList(staffList, true);
             mergeStaffProfiles(staffList, staffProfiles);
             await gasPost({ action: 'saveStaff', staffList });
             saveDB();
