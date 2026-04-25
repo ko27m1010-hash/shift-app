@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja" data-theme="light" style=""><head>
     <meta charset="UTF-8">
@@ -880,10 +881,10 @@
     </div>
 
     <!-- タブ3：公開カレンダー -->
-    <div class="tab-panel active" id="tab-pub">
+    <div class="tab-panel" id="tab-pub">
       <div class="mgr-nav">
         <button class="btn-action" onclick="changePubMonth(-1)">◀</button>
-        <div style="font-weight: 900; font-size: 1.1rem; color: var(--gd)" id="pubMonthLabel">2026年5月</div>
+        <div style="font-weight: 900; font-size: 1.1rem; color: var(--gd)" id="pubMonthLabel">読込中...</div>
         <button class="btn-action" onclick="changePubMonth(1)">▶</button>
       </div>
       <div class="card">
@@ -967,7 +968,7 @@
     </div>
 
     <!-- タブ3：管理者 -->
-    <div class="tab-panel" id="tab-mgr">
+    <div class="tab-panel active" id="tab-mgr">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px; flex-wrap: wrap">
         <div style="font-weight: 900; color: var(--gd)">🖥️ 管理者モード</div>
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
@@ -986,7 +987,7 @@
         <div>
           <div class="mgr-nav">
             <button class="btn-action" onclick="changeAdmMonth(-1)">◀ 前月</button>
-            <div style="font-weight: 900; font-size: 1.1rem; color: var(--gd)" id="admMonthLabel">2026年5月</div>
+            <div style="font-weight: 900; font-size: 1.1rem; color: var(--gd)" id="admMonthLabel">読込中...</div>
             <button class="btn-action" onclick="changeAdmMonth(1)">次月 ▶</button>
           </div>
           <div class="card">
@@ -1146,11 +1147,11 @@
         <div class="t-icon">⏱️</div>
         <div>実績を入れる</div>
       </button>
-      <button class="tab-btn active" onclick="switchTab('pub')">
+      <button class="tab-btn" onclick="switchTab('pub')">
         <div class="t-icon">📅</div>
         <div>カレンダー</div>
       </button>
-      <button class="tab-btn" onclick="switchTab('mgr')">
+      <button class="tab-btn active" onclick="switchTab('mgr')">
         <div class="t-icon">⚙️</div>
         <div>管理者</div>
       </button>
@@ -1268,12 +1269,17 @@
     <script>
       // --- State ---
       const GAS_URL = 'https://script.google.com/macros/s/AKfycbyol3aRw36McuyYjOfSK-NsRST8PqQHtiU7SUSh5CbYzSc9jyM658AoCBbGNBT5223CDg/exec';
-      const DEFAULT_STAFF = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '田中 美咲', '伊藤 健太'];
+      const LEGACY_DEFAULT_STAFF = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '田中 美咲', '伊藤 健太'];
+      const DEFAULT_STAFF = ['江野', '金森', '佐々木', '立川夏子', '須藤', '武田信一', '中谷', '長谷部', '平間文美', '平間', '伏見', '真央', '吉園', '古関', '小山内', '野々村'];
       const STAFF_PROFILE_PATTERN = '__staff_profile__';
       const WORK_PLAN_PATTERN = '__work_plan__';
       const ACTUAL_WORK_PATTERN = '__actual_work__';
-      let staffList = JSON.parse(localStorage.getItem('sf_staff')) || DEFAULT_STAFF;
+      let staffList = normalizeManagedStaffList(JSON.parse(localStorage.getItem('sf_staff')) || [...DEFAULT_STAFF]);
       let staffProfiles = JSON.parse(localStorage.getItem('sf_staff_profiles')) || DEFAULT_STAFF.map((name) => createDefaultStaffProfile(name));
+      if (isLegacyStaffList(staffList)) staffList = [...DEFAULT_STAFF];
+      if (!Array.isArray(staffProfiles) || isLegacyStaffList(staffProfiles.map((profile) => profile?.name))) {
+        staffProfiles = DEFAULT_STAFF.map((name) => createDefaultStaffProfile(name));
+      }
       let workPlans = JSON.parse(localStorage.getItem('sf_work_plans')) || {};
       let actualWorks = JSON.parse(localStorage.getItem('sf_actual_works')) || [];
       let submissions = JSON.parse(localStorage.getItem('sf_subs')) || [];
@@ -1284,13 +1290,9 @@
       let curYear = new Date().getFullYear();
       let curMonth = new Date().getMonth() + 1;
       let inpYear = curYear,
-        inpMonth = curMonth + 1;
-      if (inpMonth > 12) {
-        inpMonth = 1;
-        inpYear++;
-      }
-      let viewYear = inpYear,
-        viewMonth = inpMonth;
+        inpMonth = curMonth;
+      let viewYear = curYear,
+        viewMonth = curMonth;
 
       let inputDates = {}; // {"1日":"午前のみ", ...}
       let pickingDay = 0;
@@ -1306,6 +1308,7 @@
         updateBanner();
         switchInputMode(currentInputMode, false);
         renderViews();
+        calcProg();
         checkDesktopView();
         window.addEventListener('resize', checkDesktopView);
         await loadRemoteData(false);
@@ -1348,7 +1351,16 @@
         try {
           const data = await gasGet('list');
           if (!data?.ok) throw new Error(data?.message || '同期に失敗しました');
-          staffList = Array.isArray(data.staff) && data.staff.length ? data.staff : [...DEFAULT_STAFF];
+          const remoteStaff = Array.isArray(data.staff) && data.staff.length ? data.staff : [...DEFAULT_STAFF];
+          const normalizedRemoteStaff = normalizeManagedStaffList(remoteStaff);
+          staffList = normalizedRemoteStaff;
+          if (JSON.stringify(remoteStaff) !== JSON.stringify(normalizedRemoteStaff)) {
+            try {
+              await gasPost({ action: 'saveStaff', staffList });
+            } catch (syncErr) {
+              console.warn('スタッフ一覧の同期に失敗しました', syncErr);
+            }
+          }
           parseRemoteRecords(Array.isArray(data.submissions) ? data.submissions : []);
           adminPin = String(data.pin || '1234');
           saveDB();
@@ -1379,6 +1391,21 @@
           return `${parsed.getFullYear()}年${parsed.getMonth() + 1}月`;
         }
         return text;
+      }
+
+      function isLegacyStaffList(list) {
+        const names = Array.isArray(list) ? list.map((item) => String(item || '').trim()) : [];
+        return names.length === LEGACY_DEFAULT_STAFF.length && names.every((name, index) => name === LEGACY_DEFAULT_STAFF[index]);
+      }
+
+      function normalizeManagedStaffList(list) {
+        const names = Array.isArray(list) ? list.map((item) => String(item || '').trim()).filter(Boolean) : [];
+        const extras = names.filter((name) => !LEGACY_DEFAULT_STAFF.includes(name) && !DEFAULT_STAFF.includes(name));
+        return [...DEFAULT_STAFF, ...extras];
+      }
+
+      function isLegacyPlaceholderName(name) {
+        return LEGACY_DEFAULT_STAFF.includes(String(name || '').trim());
       }
 
       function createDefaultStaffProfile(name) {
@@ -1531,6 +1558,8 @@
 
         records.forEach((record) => {
           if (record.pattern === STAFF_PROFILE_PATTERN) {
+            if (isLegacyPlaceholderName(record.name)) return;
+
             const parsed = safeJsonParse(record.timeband, {});
             incomingProfiles.push({
               name: record.name,
@@ -1555,6 +1584,7 @@
           }
 
           if (record.pattern === ACTUAL_WORK_PATTERN) {
+            if (isLegacyPlaceholderName(record.name)) return;
             const parsed = safeJsonParse(record.timeband, {});
             incomingActualWorks.push({
               id: String(record.id || `actual_${encodeURIComponent(record.name)}_${parsed.date || ''}`),
@@ -1569,6 +1599,8 @@
             });
             return;
           }
+
+          if (isLegacyPlaceholderName(record.name)) return;
 
           shiftSubs.push({
             ...record,
@@ -1585,6 +1617,7 @@
 
       function initSelects() {
         const s = document.getElementById('inpMonth');
+        const defaultMonth = `${curYear}年${curMonth}月`;
         s.innerHTML = '<option value="">選択してください</option>';
         for (let i = 0; i < 3; i++) {
           let y = curYear,
@@ -1595,6 +1628,9 @@
           }
           s.innerHTML += `<option value="${y}年${m}月">${y}年${m}月</option>`;
         }
+        s.value = defaultMonth;
+        inpYear = curYear;
+        inpMonth = curMonth;
       }
 
       function updateStaffUI() {
@@ -1882,8 +1918,11 @@
 
       function resetForm() {
         editId = null;
+        const defaultMonth = `${curYear}年${curMonth}月`;
         document.getElementById('inpName').value = selfStaffName || '';
-        document.getElementById('inpMonth').value = '';
+        document.getElementById('inpMonth').value = defaultMonth;
+        inpYear = curYear;
+        inpMonth = curMonth;
         document.getElementById('inpNote').value = '';
         document.querySelectorAll('input[type=radio]').forEach((r) => (r.checked = false));
         document.querySelectorAll('.opt-item').forEach((i) => i.classList.remove('selected'));
