@@ -3253,5 +3253,31 @@
   // 初回読み込み時
   window.addEventListener('load', forceGridUpdate);
 </script>
+<script>
+  /* 全データ初期化後でも確実にスタッフ名を表示させる強制スクリプト */
+  window.addEventListener('load', () => {
+    // もしスタッフリストが空だったら、DEFAULT_STAFFを流し込む
+    if (!staffList || staffList.length === 0) {
+      console.log('スタッフリストが空のため、デフォルト値を読み込みます');
+      staffList = [...DEFAULT_STAFF];
+      mergeStaffProfiles(staffList, []);
+      saveDB(); // ブラウザに保存
+    }
+    
+    // 画面の選択肢（お名前）と管理画面を再描画
+    if (typeof updateStaffUI === 'function') updateStaffUI();
+    if (typeof renderViews === 'function') renderViews();
+    
+    // それでも出ない場合、さらに強力に再描画
+    setTimeout(() => {
+      const inp = document.getElementById('inpName');
+      const act = document.getElementById('actName');
+      if (inp && inp.options.length <= 1) {
+        updateStaffUI();
+        renderViews();
+      }
+    }, 1000);
+  });
+</script>
 
 </body></html>
