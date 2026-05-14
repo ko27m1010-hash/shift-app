@@ -82,7 +82,7 @@
         background: #fff;
         border-top: 1px solid var(--bd);
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         padding-bottom: env(safe-area-inset-bottom);
         box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.1);
       }
@@ -670,7 +670,7 @@
       <div class="hdr-logo">🌾</div>
       <div style="flex: 1">
         <div class="hdr-title">シフト管理システム</div>
-        <div class="hdr-sub">農業パートスタッフ用</div>
+        <div class="hdr-sub" onclick="triggerAdminAccess()">農業パートスタッフ用</div>
       </div>
     </div>
     <div class="progress-bar" id="progressBar" style="display: none"><div class="progress-fill" id="progFill"></div></div>
@@ -678,7 +678,7 @@
     <div class="toast" id="toast"></div>
 
     <!-- タブ1：シフト希望入力 -->
-    <div class="tab-panel" id="tab-input">
+    <div class="tab-panel active" id="tab-input">
       <div class="card">
         <div class="card-head">👤<span class="ch-title">お名前</span><span class="ch-badge">必須</span></div>
         <div class="card-body">
@@ -968,7 +968,7 @@
     </div>
 
     <!-- タブ3：管理者 -->
-    <div class="tab-panel active" id="tab-mgr">
+    <div class="tab-panel" id="tab-mgr">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px; flex-wrap: wrap">
         <div style="font-weight: 900; color: var(--gd)">🖥️ 管理者モード</div>
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
@@ -1097,6 +1097,20 @@
             <div class="card-head">💴<span class="ch-title">簡易請求・実績管理</span></div>
             <div class="card-body" id="admBilling"><div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この月は 0 件の出勤予定があります。</div></div>
           </div>
+          <div class="card">
+            <div class="card-head">🧾<span class="ch-title">清算書・請求控え</span></div>
+            <div class="card-body">
+              <div style="font-size:.8rem;color:var(--sub);line-height:1.7;margin-bottom:10px">スタッフへ渡す確認用の清算書兼請求内容確認書と、農場で保管する控えを印刷・保存できます。領収書は別途手書き運用のため、本システムでは作成しません。</div>
+              <div id="admPrintTools"><div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この月の清算対象スタッフが表示されると、ここから印刷・保管できます。</div></div>
+              <div style="height:1px;background:var(--bd);margin:14px 0"></div>
+              <div style="font-size:.8rem;font-weight:800;color:var(--gd);margin-bottom:8px">🗂️ 農場保管用の請求控え</div>
+              <div id="admInvoiceArchive"><div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この端末に保管した請求控えがここに表示されます。</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head">📈<span class="ch-title">スタッフ勤務管理</span></div>
+            <div class="card-body" id="admStaffMgmt"><div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">管理者専用でスタッフごとの月間・年間の勤務状況を確認できます。</div></div>
+          </div>
         </div>
       </div>
 
@@ -1139,7 +1153,7 @@
 
     <!-- 下部タブバー -->
     <div class="tab-bar">
-      <button class="tab-btn" onclick="switchTab('input')">
+      <button class="tab-btn active" onclick="switchTab('input')">
         <div class="t-icon">📝</div>
         <div>希望を送る</div>
       </button>
@@ -1151,10 +1165,7 @@
         <div class="t-icon">📅</div>
         <div>カレンダー</div>
       </button>
-      <button class="tab-btn active" onclick="switchTab('mgr')">
-        <div class="t-icon">⚙️</div>
-        <div>管理者</div>
-      </button>
+
     </div>
 
     <!-- モーダル：時間帯ピッカー -->
@@ -1288,9 +1299,14 @@
       let workPlans = JSON.parse(localStorage.getItem('sf_work_plans')) || {};
       let actualWorks = JSON.parse(localStorage.getItem('sf_actual_works')) || [];
       let submissions = JSON.parse(localStorage.getItem('sf_subs')) || [];
+      let invoiceArchive = JSON.parse(localStorage.getItem('sf_invoice_archive') || '[]');
+      if (!Array.isArray(invoiceArchive)) invoiceArchive = [];
       let adminPin = localStorage.getItem('sf_pin') || '1234';
       let selfStaffName = localStorage.getItem('sf_self_name') || '';
       let adminUnlocked = false;
+      let currentBillingRows = [];
+      let adminTapCount = 0;
+      let adminTapTimer = null;
 
       let curYear = new Date().getFullYear();
       let curMonth = new Date().getMonth() + 1;
@@ -1330,6 +1346,7 @@
         localStorage.setItem('sf_work_plans', JSON.stringify(workPlans));
         localStorage.setItem('sf_actual_works', JSON.stringify(actualWorks));
         localStorage.setItem('sf_subs', JSON.stringify(submissions));
+        localStorage.setItem('sf_invoice_archive', JSON.stringify(invoiceArchive));
         localStorage.setItem('sf_pin', adminPin);
         localStorage.setItem('sf_staff_seed_version', staffSeedVersion || STAFF_SEED_VERSION);
         localStorage.setItem('sf_input_mode', currentInputMode || 'shift');
@@ -1607,6 +1624,10 @@
       function getActualWorksForMonth(y, m) {
         const target = `${y}年${m}月`;
         return actualWorks.filter((item) => normalizeMonthValue(item.month) === target);
+      }
+
+      function getActualWorksForYear(y) {
+        return actualWorks.filter((item) => normalizeMonthValue(item.month).startsWith(`${y}年`));
       }
 
       function getActualWorksForDate(y, m, d) {
@@ -2296,6 +2317,347 @@
         }
       }
 
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function triggerAdminAccess() {
+        adminTapCount += 1;
+        if (adminTapTimer) clearTimeout(adminTapTimer);
+        adminTapTimer = setTimeout(() => {
+          adminTapCount = 0;
+        }, 1200);
+        if (adminTapCount >= 5) {
+          adminTapCount = 0;
+          clearTimeout(adminTapTimer);
+          switchTab('mgr');
+        }
+      }
+
+      function openPrintWindow(title, bodyHtml) {
+        const w = window.open('', '_blank', 'width=980,height=1200');
+        if (!w) {
+          showToast('印刷画面を開けませんでした。ポップアップ許可をご確認ください');
+          return;
+        }
+        w.document.write(`<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>${escapeHtml(title)}</title>
+  <style>
+    body{font-family:'Noto Sans JP',sans-serif;color:#222;margin:24px;line-height:1.6}
+    .sheet{border:2px solid #1b4332;border-radius:14px;padding:20px;margin-bottom:24px}
+    .sheet-title{font-size:22px;font-weight:900;color:#1b4332;margin-bottom:8px}
+    .sheet-sub{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:16px;font-size:13px;color:#555}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border:1px solid #b7cfc4;padding:10px;text-align:left;font-size:14px}
+    th{background:#eef8f1;width:34%}
+    .amount{font-size:24px;font-weight:900;color:#1b4332}
+    .note{margin-top:14px;font-size:13px;color:#555}
+    .sign{margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+    .sign-box{border-top:1px solid #555;padding-top:8px;min-height:56px}
+    @media print { body{margin:0} .sheet{break-after:page; margin:0 0 14mm 0; border-radius:0;} }
+  </style>
+</head>
+<body>${bodyHtml}</body>
+</html>`);
+        w.document.close();
+        w.focus();
+        setTimeout(() => w.print(), 300);
+      }
+
+      function buildSettlementSheet(row, monthLabel, issueDate, copyLabel, archiveNote = '') {
+        const profileMemo = Number(row.dailyTransport || 0) > 0 ? `交通費単価反映済み（1日 ${formatYen(row.dailyTransport)}）` : '交通費設定なし';
+        return `
+          <section class="sheet">
+            <div class="sheet-title">${escapeHtml(monthLabel)} 請求内容確認書（${escapeHtml(copyLabel)}）</div>
+            <div class="sheet-sub">
+              <span>スタッフ名：${escapeHtml(row.name)}</span>
+              <span>発行日：${escapeHtml(issueDate)}</span>
+              <span>対象月：${escapeHtml(monthLabel)}</span>
+            </div>
+            <table>
+              <tr><th>希望提出日数</th><td>${Number(row.plannedDays || 0)}日</td></tr>
+              <tr><th>出勤日数</th><td>${Number(row.actualDays || 0)}日</td></tr>
+              <tr><th>実働時間</th><td>${formatHours(row.actualHours)}</td></tr>
+              <tr><th>時給</th><td>${formatYen(row.hourlyRate)} / 時</td></tr>
+              <tr><th>給与小計</th><td>${formatYen(row.wageTotal)}</td></tr>
+              <tr><th>交通費</th><td>${formatYen(row.transportTotal)} <span style="font-size:12px;color:#666">（${escapeHtml(profileMemo)}）</span></td></tr>
+              <tr><th>月間精算額</th><td class="amount">${formatYen(row.monthlyTotal)}</td></tr>
+            </table>
+            <div class="note">※ 実績入力をもとにした月次の請求内容確認書です。領収書は別紙に手書きでご記入ください。</div>
+            ${archiveNote ? `<div class="note">${escapeHtml(archiveNote)}</div>` : ''}
+            <div class="sign">
+              <div class="sign-box">スタッフ確認サイン</div>
+              <div class="sign-box">農場確認</div>
+            </div>
+          </section>`;
+      }
+
+      function openSettlementDocument(row, options = {}) {
+        if (!row) { showToast('帳票データが見つかりません'); return; }
+        const monthLabel = options.monthLabel || `${viewYear}年${viewMonth}月`;
+        const issueDate = options.issueDate || new Date().toLocaleDateString('ja-JP');
+        const archiveNote = options.archiveNote || '';
+        openPrintWindow(
+          `${row.name}_${monthLabel}_請求内容確認書`,
+          `${buildSettlementSheet(row, monthLabel, issueDate, 'スタッフ確認用', archiveNote)}${buildSettlementSheet(row, monthLabel, issueDate, '農場保管用', archiveNote)}`,
+        );
+      }
+
+      function getInvoiceArchiveId(year, month, name) {
+        return `inv_${year}_${String(month).padStart(2, '0')}_${encodeURIComponent(name).replace(/%/g, '_')}`;
+      }
+
+      function buildInvoiceArchiveEntry(row) {
+        return {
+          id: getInvoiceArchiveId(viewYear, viewMonth, row.name),
+          year: viewYear, month: viewMonth,
+          monthLabel: `${viewYear}年${viewMonth}月`,
+          name: row.name,
+          issueDate: new Date().toLocaleDateString('ja-JP'),
+          savedAt: new Date().toISOString(),
+          plannedDays: Number(row.plannedDays || 0),
+          actualDays: Number(row.actualDays || 0),
+          actualHours: Number(row.actualHours || 0),
+          hourlyRate: Number(row.hourlyRate || 0),
+          dailyTransport: Number(row.dailyTransport || 0),
+          wageTotal: Number(row.wageTotal || 0),
+          transportTotal: Number(row.transportTotal || 0),
+          monthlyTotal: Number(row.monthlyTotal || 0),
+        };
+      }
+
+      function printSettlementSlip(name) {
+        const row = currentBillingRows.find((item) => item.name === name);
+        if (!row) { showToast('印刷対象のスタッフが見つかりません'); return; }
+        openSettlementDocument(row);
+      }
+
+      function printSettlementSlipByIndex(index) {
+        const row = currentBillingRows[index];
+        if (!row) { showToast('印刷対象のスタッフが見つかりません'); return; }
+        openSettlementDocument(row);
+      }
+
+      function printAllSettlementSlips() {
+        if (!currentBillingRows.length) { showToast('印刷できる清算対象がありません'); return; }
+        const monthLabel = `${viewYear}年${viewMonth}月`;
+        const issueDate = new Date().toLocaleDateString('ja-JP');
+        const bodyHtml = currentBillingRows
+          .map((row) => `${buildSettlementSheet(row, monthLabel, issueDate, 'スタッフ確認用')}${buildSettlementSheet(row, monthLabel, issueDate, '農場保管用')}`)
+          .join('');
+        openPrintWindow(`${monthLabel}_全スタッフ請求内容確認書`, bodyHtml);
+      }
+
+      function saveInvoiceSnapshot(row) {
+        if (!row) { showToast('保管対象の帳票が見つかりません'); return; }
+        const entry = buildInvoiceArchiveEntry(row);
+        invoiceArchive = invoiceArchive.filter((item) => item.id !== entry.id);
+        invoiceArchive.unshift(entry);
+        invoiceArchive.sort((a, b) => String(b.savedAt || '').localeCompare(String(a.savedAt || ''), 'ja'));
+        saveDB();
+        renderInvoiceArchive();
+        showToast(`${row.name} さんの請求控えを農場保管用に保存しました`);
+      }
+
+      function saveInvoiceSnapshotByIndex(index) {
+        saveInvoiceSnapshot(currentBillingRows[index]);
+      }
+
+      function saveAllInvoiceSnapshots() {
+        if (!currentBillingRows.length) { showToast('保管できる帳票がありません'); return; }
+        const archiveMap = new Map(invoiceArchive.map((item) => [item.id, item]));
+        currentBillingRows.forEach((row) => {
+          const entry = buildInvoiceArchiveEntry(row);
+          archiveMap.set(entry.id, entry);
+        });
+        invoiceArchive = Array.from(archiveMap.values()).sort((a, b) => String(b.savedAt || '').localeCompare(String(a.savedAt || ''), 'ja'));
+        saveDB();
+        renderInvoiceArchive();
+        showToast(`${viewYear}年${viewMonth}月の請求控えを一括保管しました`);
+      }
+
+      function printArchivedInvoice(id) {
+        const entry = invoiceArchive.find((item) => item.id === id);
+        if (!entry) { showToast('保管済みの請求控えが見つかりません'); return; }
+        const savedLabel = entry.savedAt ? new Date(entry.savedAt).toLocaleString('ja-JP') : '';
+        openSettlementDocument(entry, {
+          monthLabel: entry.monthLabel || `${entry.year}年${entry.month}月`,
+          issueDate: entry.issueDate || new Date().toLocaleDateString('ja-JP'),
+          archiveNote: savedLabel ? `農場保管日時：${savedLabel}` : '農場保管用の保存帳票',
+        });
+      }
+
+      function deleteArchivedInvoice(id) {
+        const entry = invoiceArchive.find((item) => item.id === id);
+        if (!entry) { showToast('削除対象の請求控えが見つかりません'); return; }
+        if (!confirm(`${entry.monthLabel || `${entry.year}年${entry.month}月`} の ${entry.name} さんの請求控えを削除しますか？`)) return;
+        invoiceArchive = invoiceArchive.filter((item) => item.id !== id);
+        saveDB();
+        renderInvoiceArchive();
+        showToast('農場保管用の請求控えを削除しました');
+      }
+
+      function deleteMonthArchivedInvoices() {
+        const monthEntries = invoiceArchive.filter((item) => Number(item.year) === viewYear && Number(item.month) === viewMonth);
+        if (!monthEntries.length) { showToast('この月の保管済み請求控えはありません'); return; }
+        if (!confirm(`${viewYear}年${viewMonth}月の保管済み請求控えをすべて削除しますか？`)) return;
+        invoiceArchive = invoiceArchive.filter((item) => !(Number(item.year) === viewYear && Number(item.month) === viewMonth));
+        saveDB();
+        renderInvoiceArchive();
+        showToast('この月の請求控えを削除しました');
+      }
+
+      function renderPrintTools() {
+        const el = document.getElementById('admPrintTools');
+        if (!el) return;
+        if (!currentBillingRows.length) {
+          el.innerHTML = '<div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この月は予定・実績データがありません。時給設定と勤務実績入力後、ここに印刷対象が表示されます。</div>';
+          return;
+        }
+        const monthLabel = `${viewYear}年${viewMonth}月`;
+        const grandTotal = currentBillingRows.reduce((sum, row) => sum + Number(row.monthlyTotal || 0), 0);
+        el.innerHTML = `
+          <div style="display:grid;gap:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--gp);padding:10px 12px;border-radius:10px">
+              <div>
+                <div style="font-weight:900;color:var(--gd)">${escapeHtml(monthLabel)} の帳票</div>
+                <div style="font-size:.78rem;color:var(--sub)">対象 ${currentBillingRows.length} 名 / 月間合計 ${formatYen(grandTotal)}</div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn-action" onclick="printAllSettlementSlips()">🖨️ 一括印刷</button>
+                <button class="btn-action" style="background:#fff;color:var(--gg);border:1px solid var(--gg)" onclick="saveAllInvoiceSnapshots()">🗂️ この月を保管</button>
+              </div>
+            </div>
+            ${currentBillingRows.map((row, index) => `
+              <div style="border:1px solid var(--bd);border-radius:10px;padding:10px;background:#fafcfb">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+                  <strong style="color:var(--gd)">${escapeHtml(row.name)}</strong>
+                  <span style="font-size:.8rem;color:var(--sub)">実績 ${row.actualDays}日 / ${formatHours(row.actualHours)} / ${formatYen(row.monthlyTotal)}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+                  <div style="font-size:.78rem;color:var(--sub)">希望 ${row.plannedDays}日・給与 ${formatYen(row.wageTotal)}・交通費 ${formatYen(row.transportTotal)}</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="btn-action" style="padding:6px 10px;font-size:.78rem" onclick="printSettlementSlipByIndex(${index})">印刷</button>
+                    <button class="btn-action" style="padding:6px 10px;font-size:.78rem;background:#fff;color:var(--gg);border:1px solid var(--gg)" onclick="saveInvoiceSnapshotByIndex(${index})">保管</button>
+                  </div>
+                </div>
+              </div>`).join('')}
+          </div>`;
+      }
+
+      function renderInvoiceArchive() {
+        const el = document.getElementById('admInvoiceArchive');
+        if (!el) return;
+        const monthEntries = invoiceArchive
+          .filter((item) => Number(item.year) === viewYear && Number(item.month) === viewMonth)
+          .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+        if (!monthEntries.length) {
+          el.innerHTML = '<div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この月の農場保管用請求控えはまだありません。「保管」を押すと控えが残ります。</div>';
+          return;
+        }
+        const total = monthEntries.reduce((sum, item) => sum + Number(item.monthlyTotal || 0), 0);
+        el.innerHTML = `
+          <div style="display:grid;gap:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:#fff8e8;padding:10px 12px;border-radius:10px">
+              <div>
+                <div style="font-weight:900;color:var(--orange)">${viewYear}年${viewMonth}月 の保管控え</div>
+                <div style="font-size:.78rem;color:var(--sub)">${monthEntries.length} 件 / 合計 ${formatYen(total)}</div>
+              </div>
+              <button class="btn-action btn-danger" style="padding:6px 10px;font-size:.78rem" onclick="deleteMonthArchivedInvoices()">この月の控えを削除</button>
+            </div>
+            ${monthEntries.map((entry) => {
+              const savedAt = entry.savedAt ? new Date(entry.savedAt).toLocaleString('ja-JP') : '保存日時なし';
+              return `
+                <div style="border:1px solid var(--bd);border-radius:10px;padding:10px;background:#fff">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+                    <strong style="color:var(--gd)">${escapeHtml(entry.name)}</strong>
+                    <span style="font-size:.8rem;color:var(--sub)">${formatYen(entry.monthlyTotal)} / 保存 ${escapeHtml(savedAt)}</span>
+                  </div>
+                  <div style="font-size:.78rem;color:var(--sub);margin-bottom:8px">出勤 ${Number(entry.actualDays || 0)}日 ・ 実働 ${formatHours(entry.actualHours)} ・ 交通費 ${formatYen(entry.transportTotal)}</div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="btn-action" style="padding:6px 10px;font-size:.78rem" onclick="printArchivedInvoice('${entry.id}')">再印刷</button>
+                    <button class="btn-action btn-danger" style="padding:6px 10px;font-size:.78rem" onclick="deleteArchivedInvoice('${entry.id}')">削除</button>
+                  </div>
+                </div>`;
+            }).join('')}
+          </div>`;
+      }
+
+      function renderStaffManagement() {
+        const el = document.getElementById('admStaffMgmt');
+        if (!el) return;
+        const monthActuals = getActualWorksForMonth(viewYear, viewMonth);
+        const yearActuals = getActualWorksForYear(viewYear);
+        const monthMap = {};
+        const yearMap = {};
+        monthActuals.forEach((item) => {
+          if (!monthMap[item.name]) monthMap[item.name] = { days: 0, hours: 0, latestDate: '' };
+          monthMap[item.name].days += 1;
+          monthMap[item.name].hours += getActualWorkHours(item);
+          if (!monthMap[item.name].latestDate || String(item.date) > monthMap[item.name].latestDate) monthMap[item.name].latestDate = String(item.date || '');
+        });
+        yearActuals.forEach((item) => {
+          if (!yearMap[item.name]) yearMap[item.name] = { days: 0, hours: 0, latestDate: '' };
+          yearMap[item.name].days += 1;
+          yearMap[item.name].hours += getActualWorkHours(item);
+          if (!yearMap[item.name].latestDate || String(item.date) > yearMap[item.name].latestDate) yearMap[item.name].latestDate = String(item.date || '');
+        });
+        const names = Array.from(new Set([...staffList, ...Object.keys(monthMap), ...Object.keys(yearMap)])).sort((a, b) => a.localeCompare(b, 'ja'));
+        const monthDaysTotal = monthActuals.length;
+        const monthHoursTotal = monthActuals.reduce((sum, item) => sum + getActualWorkHours(item), 0);
+        const yearDaysTotal = yearActuals.length;
+        const yearHoursTotal = yearActuals.reduce((sum, item) => sum + getActualWorkHours(item), 0);
+        el.innerHTML = names.length
+          ? `
+            <div style="display:grid;gap:10px">
+              <div style="display:flex;gap:10px;flex-wrap:wrap;text-align:center">
+                <div style="flex:1;background:var(--gp);padding:10px;border-radius:10px;min-width:120px">
+                  <div style="font-size:1.3rem;font-weight:900;color:var(--gd)">${monthDaysTotal}</div>
+                  <div style="font-size:.72rem;color:var(--sub)">${viewYear}年${viewMonth}月の出勤日数</div>
+                </div>
+                <div style="flex:1;background:var(--gb);padding:10px;border-radius:10px;min-width:120px">
+                  <div style="font-size:1.3rem;font-weight:900;color:var(--gd)">${formatHours(monthHoursTotal)}</div>
+                  <div style="font-size:.72rem;color:var(--sub)">${viewYear}年${viewMonth}月の実働時間</div>
+                </div>
+                <div style="flex:1;background:#fff8e8;padding:10px;border-radius:10px;min-width:120px">
+                  <div style="font-size:1.3rem;font-weight:900;color:var(--orange)">${yearDaysTotal}</div>
+                  <div style="font-size:.72rem;color:var(--sub)">${viewYear}年の年間出勤日数</div>
+                </div>
+                <div style="flex:1;background:#eef6ff;padding:10px;border-radius:10px;min-width:120px">
+                  <div style="font-size:1.3rem;font-weight:900;color:#22577a">${formatHours(yearHoursTotal)}</div>
+                  <div style="font-size:.72rem;color:var(--sub)">${viewYear}年の年間実働時間</div>
+                </div>
+              </div>
+              ${names.map((name) => {
+                const monthInfo = monthMap[name] || { days: 0, hours: 0, latestDate: '' };
+                const yearInfo = yearMap[name] || { days: 0, hours: 0, latestDate: '' };
+                const latestDate = yearInfo.latestDate || monthInfo.latestDate || '—';
+                return `
+                  <div style="border:1px solid var(--bd);border-radius:10px;padding:10px;background:#fafcfb">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+                      <strong style="color:var(--gd)">${escapeHtml(name)}</strong>
+                      <span style="font-size:.78rem;color:var(--sub)">直近実績日：${escapeHtml(latestDate)}</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;font-size:.8rem;color:var(--sub)">
+                      <div style="background:#fff;border-radius:8px;padding:8px">当月出勤 <strong style="color:var(--gd)">${monthInfo.days}日</strong></div>
+                      <div style="background:#fff;border-radius:8px;padding:8px">当月時間 <strong style="color:var(--gd)">${formatHours(monthInfo.hours)}</strong></div>
+                      <div style="background:#fff;border-radius:8px;padding:8px">年間出勤 <strong style="color:var(--orange)">${yearInfo.days}日</strong></div>
+                      <div style="background:#fff;border-radius:8px;padding:8px">年間時間 <strong style="color:#22577a">${formatHours(yearInfo.hours)}</strong></div>
+                    </div>
+                  </div>`;
+              }).join('')}
+            </div>`
+          : '<div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">勤務実績を保存するとスタッフごとの月間・年間状況が表示されます。</div>';
+      }
+
       function renderViews() {
         const dmap = getDayData(viewYear, viewMonth);
         document.getElementById('pubMonthLabel').textContent = `${viewYear}年${viewMonth}月`;
@@ -2366,6 +2728,8 @@
           };
         });
 
+        currentBillingRows = billingRows;
+
         const grandTotal = billingRows.reduce((sum, row) => sum + row.monthlyTotal, 0);
         document.getElementById('admBilling').innerHTML = billingRows.length
           ? `
@@ -2394,6 +2758,10 @@
                 .join('')}
             </div>`
           : `<div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この月は予定・実績データがありません。時給設定と勤務実績入力後、ここに精算額が表示されます。</div>`;
+
+        renderPrintTools();
+        renderInvoiceArchive();
+        renderStaffManagement();
       }
 
       function changePubMonth(v) {
@@ -2525,7 +2893,7 @@
           adminUnlocked = true;
           document.getElementById('pinOverlay').classList.remove('open');
           document.getElementById('pinInput').value = '';
-          renderViews();
+          switchTab('mgr');
         } else {
           showToast('PINが違います');
         }
@@ -2533,7 +2901,6 @@
       function cancelPin() {
         document.getElementById('pinOverlay').classList.remove('open');
         document.getElementById('pinInput').value = '';
-        switchTab('pub');
       }
       async function saveStaffProfileByIndex(i) {
         const name = staffList[i];
