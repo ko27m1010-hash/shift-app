@@ -66,3 +66,199 @@
       @media print { .tab-bar, .hdr, .btn-action { display: none !important; } .sheet { break-after: page; border: 1px solid #000; padding: 20px; margin-bottom: 20px; } }
     </style>
 </head>
+<body>
+    <div class="hdr" onclick="triggerAdminAccess()">
+      <div class="hdr-logo">🌾</div>
+      <div style="flex: 1">
+        <div class="hdr-title">シフト管理システム</div>
+        <div style="font-size:0.7rem;opacity:0.8">農業パートスタッフ用</div>
+      </div>
+    </div>
+
+    <!-- タブ1：希望入力 -->
+    <div class="tab-panel active" id="tab-input">
+        <div class="card">
+            <div class="card-head">📝 シフト希望入力</div>
+            <div class="card-body">
+                <label>お名前</label>
+                <select id="inpName" onchange="onNameChange()"><option value="">選択してください</option></select>
+                <div id="selfLockInfo" style="font-size:0.8rem;color:var(--sub);margin-top:8px"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- タブ2：実績入力 -->
+    <div class="tab-panel" id="tab-actual">
+        <div class="card">
+            <div class="card-head">⏱️ 勤務実績入力</div>
+            <div class="card-body">
+                <label>お名前</label>
+                <select id="actName" onchange="onActualNameChange()"><option value="">選択してください</option></select>
+                <div id="actualSelfLockInfo" style="font-size:0.8rem;color:var(--sub);margin-top:8px"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- タブ3：カレンダー公開 -->
+    <div class="tab-panel" id="tab-pub">
+        <div class="card"><div class="card-head">📅 カレンダー</div><div class="card-body" id="pubGrid"></div></div>
+    </div>
+
+    <!-- タブ4：管理者（グリッドレイアウト版） -->
+    <div class="tab-panel" id="tab-mgr">
+        <div class="card">
+            <div class="card-head">🧾 清算書・請求控え</div>
+            <div class="card-body">
+                <div id="admPrintTools" class="adm-grid-container"></div>
+                <div style="margin:20px 0 10px; font-weight:800; color:var(--gd)">🗂️ 農場保管用の請求控え</div>
+                <div id="admInvoiceArchive" class="adm-grid-container"></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-head">📊 スタッフ勤務管理</div>
+            <div class="card-body" id="admStaffMgmt" class="adm-grid-container"></div>
+        </div>
+    </div>
+
+    <div class="tab-bar" id="mainTabBar">
+        <button class="tab-btn active" onclick="switchTab('input')"><div style="font-size:1.2rem">📝</div><div>希望を送る</div></button>
+        <button class="tab-btn" onclick="switchTab('actual')"><div style="font-size:1.2rem">⏱️</div><div>実績を入れる</div></button>
+        <button class="tab-btn" onclick="switchTab('pub')"><div style="font-size:1.2rem">📅</div><div>カレンダー</div></button>
+        <button class="tab-btn" id="adminTabBtn" style="display:none" onclick="switchTab('mgr')"><div style="font-size:1.2rem">🔐</div><div>管理</div></button>
+    </div>
+
+    <div class="overlay" id="pinOverlay">
+        <div style="font-size:3rem">🔐</div>
+        <div style="font-size:1.2rem;font-weight:900;margin-bottom:20px">管理者認証</div>
+        <input type="password" id="pinInput" placeholder="4桁のPIN" maxlength="4" style="width:140px;text-align:center;font-size:1.5rem;letter-spacing:8px">
+        <div style="margin-top:20px;display:flex;gap:10px">
+            <button class="btn-action" onclick="checkPin()">認証</button>
+            <button class="btn-action btn-danger" onclick="closePin()">取消</button>
+        </div>
+    </div>
+    <script>
+      const GAS_URL = "ここにGASのURLを貼ってください";
+      let adminPin = localStorage.getItem('sf_pin') || '1234';
+      let adminUnlocked = localStorage.getItem('sf_show_admin_tab') === '1';
+      let staffList = JSON.parse(localStorage.getItem('sf_staff')) || ["堤幸太", "長谷部まさえ"];
+      let staffProfiles = JSON.parse(localStorage.getItem('sf_staff_profiles')) || [];
+      let actualWorks = JSON.parse(localStorage.getItem('sf_actual_works')) || [];
+      let invoiceArchive = JSON.parse(localStorage.getItem('sf_invoice_archive')) || [];
+      let adminTapCount = 0; let adminTapTimer = null;
+      let viewYear = new Date().getFullYear(); let viewMonth = new Date().getMonth() + 1;
+
+      document.addEventListener('DOMContentLoaded', () => {
+          updateStaffUI();
+          if(adminUnlocked) showAdminUI();
+      });
+
+      function triggerAdminAccess() {
+          adminTapCount++;
+          clearTimeout(adminTapTimer);
+          adminTapTimer = setTimeout(() => adminTapCount = 0, 1000);
+          if(adminTapCount >= 5) {
+              adminTapCount = 0;
+              document.getElementById('pinOverlay').classList.add('open');
+          }
+      }
+
+      function checkPin() {
+          if(document.getElementById('pinInput').value === adminPin) {
+              adminUnlocked = true;
+              localStorage.setItem('sf_show_admin_tab', '1');
+              document.getElementById('pinOverlay').classList.remove('open');
+              showAdminUI();
+              switchTab('mgr');
+          } else { alert('PINが違います'); }
+      }
+      function closePin() { document.getElementById('pinOverlay').classList.remove('open'); }
+
+      function showAdminUI() {
+          document.getElementById('mainTabBar').classList.add('show-admin-tab');
+          document.getElementById('adminTabBtn').style.display = 'flex';
+      }
+
+      function switchTab(t) {
+          if(t === 'mgr' && !adminUnlocked) {
+              document.getElementById('pinOverlay').classList.add('open');
+              return;
+          }
+          document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+          document.getElementById('tab-' + t)?.classList.add('active');
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          if(t === 'mgr') renderAdminContent();
+      }
+
+      function formatYen(v) { return '¥' + Math.round(v).toLocaleString(); }
+      function escapeHtml(s) { const div = document.createElement('div'); div.innerText = s; return div.innerHTML; }
+      function getActualWorkHours(w) { 
+          if(!w.start || !w.end) return 0;
+          const s = w.start.split(':').map(Number); const e = w.end.split(':').map(Number);
+          return (e[0]*60 + e[1]) - (s[0]*60 + s[1]) - (Number(w.breakMinutes) || 0) / 60;
+      }
+      function renderAdminContent() {
+          const mgmt = document.getElementById('admStaffMgmt');
+          const printArea = document.getElementById('admPrintTools');
+          
+          // --- スタッフ勤務管理（グリッド横並び） ---
+          let mgmtHtml = `<div class="adm-grid-container">`;
+          staffList.forEach(name => {
+              const works = actualWorks.filter(w => w.name === name);
+              const mWorks = works.filter(w => w.date && w.date.includes(`${viewYear}-${String(viewMonth).padStart(2,'0')}`));
+              const mHours = mWorks.reduce((sum, w) => {
+                  const s = w.start.split(':').map(Number); const e = w.end.split(':').map(Number);
+                  const diff = (e[0]*60 + e[1]) - (s[0]*60 + s[1]) - (Number(w.breakMinutes) || 0);
+                  return sum + (diff > 0 ? diff / 60 : 0);
+              }, 0);
+              
+              mgmtHtml += `
+                <div class="adm-item-card">
+                  <div style="font-weight:900; color:var(--gd); border-bottom:1px solid #eee; padding-bottom:5px; margin-bottom:8px">👤 ${escapeHtml(name)}</div>
+                  <div class="adm-stats-grid">
+                    <div class="adm-stat-box"><div style="font-size:0.65rem; color:var(--sub)">当月日数</div><div style="font-weight:800">${mWorks.length}日</div></div>
+                    <div class="adm-stat-box"><div style="font-size:0.65rem; color:var(--sub)">当月時間</div><div style="font-weight:800">${mHours.toFixed(1)}h</div></div>
+                    <div class="adm-stat-box"><div style="font-size:0.65rem; color:var(--sub)">年間日数</div><div style="font-weight:800">${works.length}日</div></div>
+                    <div class="adm-stat-box"><div style="font-size:0.65rem; color:var(--sub)">年間時間</div><div style="font-weight:800">${works.reduce((s,w)=>s+getActualWorkHours(w),0).toFixed(1)}h</div></div>
+                  </div>
+                </div>`;
+          });
+          mgmtHtml += `</div>`;
+          mgmt.innerHTML = mgmtHtml;
+
+          // --- 清算書・印刷（グリッド横並び） ---
+          let printHtml = `<div class="adm-grid-container">`;
+          staffList.forEach(name => {
+              const profile = staffProfiles.find(p => p.name === name) || { hourlyRate: 1100, transportDistance: 0, transportRate: 0 };
+              const mWorks = actualWorks.filter(w => w.name === name && w.date && w.date.includes(`${viewYear}-${String(viewMonth).padStart(2,'0')}`));
+              if(mWorks.length === 0) return;
+              
+              const mHours = mWorks.reduce((s, w) => s + getActualWorkHours(w), 0);
+              const total = (mHours * profile.hourlyRate) + (mWorks.length * profile.transportDistance * 2 * profile.transportRate);
+              
+              printHtml += `
+                <div class="adm-item-card">
+                  <div style="display:flex; justify-content:space-between; margin-bottom:8px">
+                    <strong style="color:var(--gd)">${escapeHtml(name)}</strong>
+                    <span style="font-size:0.8rem; font-weight:800">${formatYen(total)}</span>
+                  </div>
+                  <div style="font-size:0.75rem; color:var(--sub); margin-bottom:10px">
+                    実績: ${mWorks.length}日 / ${mHours.toFixed(1)}時間
+                  </div>
+                  <div style="display:flex; gap:8px">
+                    <button class="btn-action" style="flex:1" onclick="printSlip('${name}')">🖨️ 印刷</button>
+                    <button class="btn-action" style="flex:1; background:#fff; color:var(--gg); border:1px solid var(--gg)" onclick="saveInv('${name}')">💾 保管</button>
+                  </div>
+                </div>`;
+          });
+          printHtml += `</div>`;
+          printArea.innerHTML = printHtml || '<div style="text-align:center;width:100%;color:#999">実績データがありません</div>';
+      }
+
+      function updateStaffUI() {
+          const list = staffList.map(n => `<option value="${n}">${n}</option>`).join('');
+          document.getElementById('inpName').innerHTML += list;
+          document.getElementById('actName').innerHTML += list;
+      }
+    </script>
+</body>
+</html>
