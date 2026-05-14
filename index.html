@@ -769,7 +769,7 @@
           </div>
         </div>
 
-        <div class="card" id="tbSection">
+        <div class="card" id="tbSection" style="display: none">
           <div class="card-head">
             ⏰<span class="ch-title">希望する出勤時間帯</span><span class="ch-badge opt">任意</span>
           </div>
@@ -1680,22 +1680,29 @@
         mergeStaffProfiles(staffList, incomingProfiles);
       }
 
+      function getShiftSeasonYear() {
+        return curMonth >= 11 ? curYear + 1 : curYear;
+      }
+
+      function getDefaultShiftTarget() {
+        if (curMonth >= 4 && curMonth <= 9) return { year: curYear, month: curMonth + 1 };
+        if (curMonth === 10) return { year: curYear + 1, month: 4 };
+        return { year: getShiftSeasonYear(), month: 4 };
+      }
+
       function initSelects() {
         const s = document.getElementById('inpMonth');
-        const defaultMonth = `${curYear}年${curMonth}月`;
+        const seasonYear = getShiftSeasonYear();
+        const defaultTarget = getDefaultShiftTarget();
+        const defaultMonth = `${defaultTarget.year}年${defaultTarget.month}月`;
         s.innerHTML = '<option value="">選択してください</option>';
-        for (let i = 0; i < 3; i++) {
-          let y = curYear,
-            m = curMonth + i;
-          if (m > 12) {
-            m -= 12;
-            y++;
-          }
-          s.innerHTML += `<option value="${y}年${m}月">${y}年${m}月</option>`;
+        for (let m = 4; m <= 10; m++) {
+          s.innerHTML += `<option value="${seasonYear}年${m}月">${seasonYear}年${m}月</option>`;
         }
         s.value = defaultMonth;
-        inpYear = curYear;
-        inpMonth = curMonth;
+        inpYear = defaultTarget.year;
+        inpMonth = defaultTarget.month;
+        renderInpCal();
       }
 
       function updateStaffUI() {
@@ -1892,10 +1899,12 @@
 
       function toggleCal() {
         const pat = document.querySelector('input[name="pattern"]:checked')?.value;
+        const monthValue = document.getElementById('inpMonth').value;
         document.getElementById('calSection').style.display = pat === '個別に日付を選択する' ? 'block' : 'none';
         document.getElementById('tbSection').style.display = pat === 'ほぼ全日出勤可能' ? 'block' : 'none';
-        if (pat === '個別に日付を選択する' && !document.getElementById('inpMonth').value) {
-          showToast('先に対象月を選択してください');
+        if (pat === '個別に日付を選択する') {
+          if (!monthValue) showToast('先に対象月を選択してください');
+          else renderInpCal();
         }
         calcProg();
       }
@@ -2004,15 +2013,17 @@
 
       function resetForm() {
         editId = null;
-        const defaultMonth = `${curYear}年${curMonth}月`;
+        const defaultTarget = getDefaultShiftTarget();
+        const defaultMonth = `${defaultTarget.year}年${defaultTarget.month}月`;
         document.getElementById('inpName').value = selfStaffName || '';
         document.getElementById('inpMonth').value = defaultMonth;
-        inpYear = curYear;
-        inpMonth = curMonth;
+        inpYear = defaultTarget.year;
+        inpMonth = defaultTarget.month;
         document.getElementById('inpNote').value = '';
         document.querySelectorAll('input[type=radio]').forEach((r) => (r.checked = false));
         document.querySelectorAll('.opt-item').forEach((i) => i.classList.remove('selected'));
         inputDates = {};
+        renderInpCal();
         document.getElementById('calSection').style.display = 'none';
         document.getElementById('tbSection').style.display = 'none';
         calcProg();
