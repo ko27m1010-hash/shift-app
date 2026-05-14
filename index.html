@@ -835,7 +835,7 @@
 
       <div class="senior-guide actual">
         <div class="senior-guide-title">⏱️ この画面は「今日働いた時間」を入れる画面です</div>
-        <div class="senior-guide-text">出勤した当日に、<strong>勤務日・出勤時間・退勤時間</strong>を入れて保存します。シフト希望とは別の画面です。</div>
+        <div class="senior-guide-text">出勤した当日に、<strong>勤務日・出勤時間・退勤時間</strong>を入れて保存します。シフト希望とは別の画面です。<strong>希望日を送っていなくても、勤務実績を保存すれば管理者の精算欄に反映</strong>されます。</div>
         <div class="senior-guide-steps">
           <div class="senior-guide-step"><strong>① 勤務日</strong> を入れる</div>
           <div class="senior-guide-step"><strong>② 出勤時間・退勤時間</strong> を入れる</div>
@@ -1109,7 +1109,7 @@
               <button class="btn-action" onclick="addStaff()">追加</button>
             </div>
             <div style="font-size: .78rem; color: var(--sub); margin-bottom: 12px; line-height: 1.6">
-              時給・片道距離・交通費単価（円/km）をスタッフごとに設定できます。交通費は <strong>片道距離 × 2 × 交通費単価</strong> で1勤務あたりの見込み額を自動計算します。名前変更もできます。削除すると、そのスタッフの希望・実績・精算設定もまとめて削除されます。
+              時給・片道距離・交通費単価（円/km）をスタッフごとに設定できます。交通費は <strong>片道距離 × 2 × 交通費単価</strong> で1勤務あたりの見込み額を自動計算します。本人用4桁PINもここで管理できます。名前変更もできます。削除すると、そのスタッフの希望・実績・精算設定もまとめて削除されます。
             </div>
             <div id="staffList"></div>
           </div>
@@ -1270,13 +1270,18 @@
       // --- State ---
       const GAS_URL = 'https://script.google.com/macros/s/AKfycbyol3aRw36McuyYjOfSK-NsRST8PqQHtiU7SUSh5CbYzSc9jyM658AoCBbGNBT5223CDg/exec';
       const LEGACY_DEFAULT_STAFF = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '田中 美咲', '伊藤 健太'];
-      const DEFAULT_STAFF = ['江野', '金森', '佐々木', '立川夏子', '須藤', '武田信一', '中谷', '長谷部', '平間文美', '平間', '伏見', '真央', '吉園', '古関', '小山内', '野々村'];
+      const DEFAULT_STAFF = ['江野', '金森', '佐々木', '立川夏子', '須藤', '武田信一', '中谷', '長谷部', '長谷部まさえ', '平間文美', '平間', '伏見', '真央', '吉園', '古関', '小山内', '野々村', '堤幸太'];
+      const STAFF_SEED_VERSION = '2026-05-14-staff-refresh-2';
       const STAFF_PROFILE_PATTERN = '__staff_profile__';
       const WORK_PLAN_PATTERN = '__work_plan__';
       const ACTUAL_WORK_PATTERN = '__actual_work__';
-      let staffList = normalizeManagedStaffList(JSON.parse(localStorage.getItem('sf_staff')) || [...DEFAULT_STAFF], true);
+      let staffSeedVersion = localStorage.getItem('sf_staff_seed_version') || '';
+      let staffList = ensureSeededStaffList(JSON.parse(localStorage.getItem('sf_staff')) || [...DEFAULT_STAFF], true);
       let staffProfiles = JSON.parse(localStorage.getItem('sf_staff_profiles')) || DEFAULT_STAFF.map((name) => createDefaultStaffProfile(name));
-      if (isLegacyStaffList(staffList)) staffList = [...DEFAULT_STAFF];
+      if (isLegacyStaffList(staffList)) {
+        staffList = [...DEFAULT_STAFF];
+        staffSeedVersion = STAFF_SEED_VERSION;
+      }
       if (!Array.isArray(staffProfiles) || isLegacyStaffList(staffProfiles.map((profile) => profile?.name))) {
         staffProfiles = DEFAULT_STAFF.map((name) => createDefaultStaffProfile(name));
       }
@@ -1326,6 +1331,7 @@
         localStorage.setItem('sf_actual_works', JSON.stringify(actualWorks));
         localStorage.setItem('sf_subs', JSON.stringify(submissions));
         localStorage.setItem('sf_pin', adminPin);
+        localStorage.setItem('sf_staff_seed_version', staffSeedVersion || STAFF_SEED_VERSION);
         localStorage.setItem('sf_input_mode', currentInputMode || 'shift');
         if (selfStaffName) localStorage.setItem('sf_self_name', selfStaffName);
         else localStorage.removeItem('sf_self_name');
@@ -1352,9 +1358,10 @@
           const data = await gasGet('list');
           if (!data?.ok) throw new Error(data?.message || '同期に失敗しました');
           const remoteStaff = Array.isArray(data.staff) ? data.staff : [...DEFAULT_STAFF];
-          const normalizedRemoteStaff = normalizeManagedStaffList(remoteStaff, !Array.isArray(data.staff));
+          const normalizedRemoteStaff = ensureSeededStaffList(remoteStaff, !Array.isArray(data.staff));
           staffList = normalizedRemoteStaff;
-          if (JSON.stringify(remoteStaff) !== JSON.stringify(normalizedRemoteStaff)) {
+          if (JSON.stringify(remoteStaff) !== JSON.stringify(normalizedRemoteStaff) || staffSeedVersion !== STAFF_SEED_VERSION) {
+            staffSeedVersion = STAFF_SEED_VERSION;
             try {
               await gasPost({ action: 'saveStaff', staffList, staff: staffList });
             } catch (syncErr) {
@@ -1405,12 +1412,25 @@
         return names.length ? names : fallbackToDefault ? [...DEFAULT_STAFF] : [];
       }
 
+      function ensureSeededStaffList(list, fallbackToDefault = false) {
+        const normalized = normalizeManagedStaffList(list, fallbackToDefault);
+        if (staffSeedVersion === STAFF_SEED_VERSION) return normalized;
+        staffSeedVersion = STAFF_SEED_VERSION;
+        return normalizeManagedStaffList([...DEFAULT_STAFF, ...normalized], true);
+      }
+
+      function normalize4DigitPin(value) {
+        return String(value ?? '')
+          .replace(/\D/g, '')
+          .slice(0, 4);
+      }
+
       function isLegacyPlaceholderName(name) {
         return LEGACY_DEFAULT_STAFF.includes(String(name || '').trim());
       }
 
       function createDefaultStaffProfile(name) {
-        return { name, hourlyRate: 0, transportDistance: 0, transportRate: 0 };
+        return { name, hourlyRate: 0, transportDistance: 0, transportRate: 0, accessPin: '' };
       }
 
       function safeJsonParse(value, fallback = {}) {
@@ -1439,6 +1459,7 @@
             hourlyRate: Number(profile.hourlyRate || 0),
             transportDistance: Number(profile.transportDistance || 0),
             transportRate: Number(profile.transportRate || 0),
+            accessPin: normalize4DigitPin(profile.accessPin || ''),
           }),
           dateDetails: {},
           note: '',
@@ -1512,13 +1533,39 @@
         const mergedMap = new Map();
         [...(staffProfiles || []), ...(incomingProfiles || [])].forEach((profile) => {
           if (!profile?.name) return;
-          mergedMap.set(profile.name, { ...createDefaultStaffProfile(profile.name), ...profile });
+          mergedMap.set(profile.name, { ...createDefaultStaffProfile(profile.name), ...profile, accessPin: normalize4DigitPin(profile.accessPin || '') });
         });
         staffProfiles = names.map((name) => mergedMap.get(name) || createDefaultStaffProfile(name));
       }
 
       function getStaffProfile(name) {
         return staffProfiles.find((profile) => profile.name === name) || createDefaultStaffProfile(name);
+      }
+
+      function getStaffAccessPin(name) {
+        return normalize4DigitPin(getStaffProfile(name)?.accessPin || '');
+      }
+
+      function requestStaffPin(name, promptMessage, allowAdminPin = false) {
+        const expectedPin = getStaffAccessPin(name);
+        if (expectedPin.length !== 4) {
+          showToast(`${name} さんの本人用PINが未設定です。管理者画面で4桁PINを設定してください`);
+          return false;
+        }
+
+        const raw = window.prompt(promptMessage || `${name} さんの4桁PINを入力してください`);
+        if (raw === null) return false;
+
+        const enteredPin = normalize4DigitPin(raw);
+        if (enteredPin.length !== 4) {
+          showToast('4桁のPINを入力してください');
+          return false;
+        }
+        if (enteredPin === expectedPin) return true;
+        if (allowAdminPin && enteredPin === normalize4DigitPin(adminPin)) return true;
+
+        showToast('PINが違います');
+        return false;
       }
 
       function getDailyTransport(profile) {
@@ -1583,6 +1630,7 @@
               hourlyRate: Number(parsed.hourlyRate || 0),
               transportDistance: Number(parsed.transportDistance || 0),
               transportRate: Number(parsed.transportRate || 0),
+              accessPin: normalize4DigitPin(parsed.accessPin || ''),
             });
             return;
           }
@@ -1681,7 +1729,7 @@
           staffList.forEach((n) => (selectEl.innerHTML += `<option value="${n}">${n}</option>`));
           selectEl.value = currentValue;
           if (infoEl) {
-            infoEl.innerHTML = '初回のみ自分の名前を選択してください。選択後、この端末ではその本人の入力だけできるように固定されます。';
+            infoEl.innerHTML = '初回のみ自分の名前を選び、本人用4桁PINを入力してください。選択後、この端末ではその本人の入力だけできるように固定されます。';
           }
         };
 
@@ -1689,13 +1737,13 @@
           shiftSelect,
           shiftInfo,
           shiftCur,
-          `この端末では <strong style="color:var(--gd)">${selfStaffName}</strong> さんのシフト希望のみ入力できます。${changeBtn}`,
+          `この端末では <strong style="color:var(--gd)">${selfStaffName}</strong> さんのシフト希望のみ入力できます。変更する時は本人PINまたは管理者PINが必要です。${changeBtn}`,
         );
         setupNameSelect(
           actualSelect,
           actualInfo,
           actualCur,
-          `この端末では <strong style="color:var(--gd)">${selfStaffName}</strong> さんの勤務実績のみ入力できます。${changeBtn}`,
+          `この端末では <strong style="color:var(--gd)">${selfStaffName}</strong> さんの勤務実績のみ入力できます。変更する時は本人PINまたは管理者PINが必要です。${changeBtn}`,
         );
 
         const sl = document.getElementById('staffList');
@@ -1722,6 +1770,9 @@
                   </label>
                   <label style="font-size:.78rem; color:var(--sub)">交通費単価（円/km）
                     <input type="number" step="0.1" id="sp_trans_${i}" placeholder="例 20" value="${Number(profile.transportRate || 0) || ''}" style="margin-top:4px">
+                  </label>
+                  <label style="font-size:.78rem; color:var(--sub)">本人用4桁PIN（管理者確認用）
+                    <input type="text" inputmode="numeric" maxlength="4" id="sp_pin_${i}" placeholder="例 0425" value="${profile.accessPin || ''}" style="margin-top:4px">
                   </label>
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -1756,12 +1807,24 @@
       }
 
       // --- Input Tab ---
+      function clearSelectableNames() {
+        const shiftSelect = document.getElementById('inpName');
+        const actualSelect = document.getElementById('actName');
+        if (shiftSelect && !shiftSelect.disabled) shiftSelect.value = '';
+        if (actualSelect && !actualSelect.disabled) actualSelect.value = '';
+      }
+
       function applySelfStaffSelection(selected) {
         if (!selected) {
           calcProg();
           return;
         }
         if (!selfStaffName) {
+          if (!requestStaffPin(selected, `【${selected}】さんの本人用4桁PINを入力してください`)) {
+            clearSelectableNames();
+            calcProg();
+            return;
+          }
           selfStaffName = selected;
           saveDB();
           updateStaffUI();
@@ -1779,11 +1842,14 @@
       }
 
       function changeSelfStaff() {
+        if (!selfStaffName) return;
         if (!confirm('この端末に固定した名前を変更しますか？')) return;
+        if (!requestStaffPin(selfStaffName, `【${selfStaffName}】さんの本人用PIN、または管理者PINを入力してください`, true)) return;
         selfStaffName = '';
         saveDB();
         updateStaffUI();
         updateBanner();
+        clearSelectableNames();
         showToast('端末の利用者固定を解除しました');
       }
 
@@ -2467,7 +2533,13 @@
           hourlyRate: Number(document.getElementById(`sp_rate_${i}`)?.value || 0),
           transportDistance: Number(document.getElementById(`sp_dist_${i}`)?.value || 0),
           transportRate: Number(document.getElementById(`sp_trans_${i}`)?.value || 0),
+          accessPin: normalize4DigitPin(document.getElementById(`sp_pin_${i}`)?.value || ''),
         };
+
+        if (document.getElementById(`sp_pin_${i}`)?.value && profile.accessPin.length !== 4) {
+          showToast('本人用PINは4桁で入力してください');
+          return;
+        }
 
         staffProfiles = staffProfiles.filter((item) => item.name !== name);
         staffProfiles.push(profile);
