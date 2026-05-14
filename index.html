@@ -1278,30 +1278,38 @@
     </div>
 
     <script>
-      // --- State ---
+           // --- State ---
       const GAS_URL = 'https://script.google.com/macros/s/AKfycbyol3aRw36McuyYjOfSK-NsRST8PqQHtiU7SUSh5CbYzSc9jyM658AoCBbGNBT5223CDg/exec';
-      const LEGACY_DEFAULT_STAFF = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '田中 美咲', '伊藤 健太'];
       const DEFAULT_STAFF = ['江野', '金森', '佐々木', '立川夏子', '須藤', '武田信一', '中谷', '長谷部', '長谷部まさえ', '平間文美', '平間', '伏見', '真央', '吉園', '古関', '小山内', '野々村', '堤幸太'];
-      const STAFF_SEED_VERSION = '2026-05-14-staff-refresh-3';
+      const STAFF_SEED_VERSION = '2026-05-14-staff-refresh-FINAL-V2'; // 強制更新用の新バージョン
       const STAFF_PROFILE_PATTERN = '__staff_profile__';
       const WORK_PLAN_PATTERN = '__work_plan__';
       const ACTUAL_WORK_PATTERN = '__actual_work__';
+
+      // 起動時にスタッフ名簿を最新の19名にリセットする処理
       let staffSeedVersion = localStorage.getItem('sf_staff_seed_version') || '';
-      let staffList = ensureSeededStaffList(JSON.parse(localStorage.getItem('sf_staff')) || [...DEFAULT_STAFF], true);
-      let staffProfiles = JSON.parse(localStorage.getItem('sf_staff_profiles')) || DEFAULT_STAFF.map((name) => createDefaultStaffProfile(name));
-      if (isLegacyStaffList(staffList)) {
-        staffList = [...DEFAULT_STAFF];
-        staffSeedVersion = STAFF_SEED_VERSION;
+      let staffList = JSON.parse(localStorage.getItem('sf_staff')) || [...DEFAULT_STAFF];
+      
+      if (staffSeedVersion !== STAFF_SEED_VERSION) {
+          staffList = [...DEFAULT_STAFF];
+          localStorage.setItem('sf_staff', JSON.stringify(staffList));
+          localStorage.setItem('sf_staff_seed_version', STAFF_SEED_VERSION);
       }
-      if (!Array.isArray(staffProfiles) || isLegacyStaffList(staffProfiles.map((profile) => profile?.name))) {
-        staffProfiles = DEFAULT_STAFF.map((name) => createDefaultStaffProfile(name));
-      }
+
+      let staffProfiles = JSON.parse(localStorage.getItem('sf_staff_profiles')) || [];
+      // 名簿にあってプロフィールがない人に時給等の初期設定を付与
+      staffList.forEach(name => {
+          if (!staffProfiles.find(p => p.name === name)) {
+              staffProfiles.push({ name, hourlyRate: 1100, transportDistance: 0, transportRate: 15 });
+          }
+      });
+
       let workPlans = JSON.parse(localStorage.getItem('sf_work_plans')) || {};
       let actualWorks = JSON.parse(localStorage.getItem('sf_actual_works')) || [];
       let submissions = JSON.parse(localStorage.getItem('sf_subs')) || [];
       let invoiceArchive = JSON.parse(localStorage.getItem('sf_invoice_archive') || '[]');
-      if (!Array.isArray(invoiceArchive)) invoiceArchive = [];
       let adminPin = localStorage.getItem('sf_pin') || '1234';
+
       let selfStaffName = localStorage.getItem('sf_self_name') || '';
       let adminUnlocked = false;
       let currentBillingRows = [];
