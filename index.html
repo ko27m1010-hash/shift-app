@@ -86,6 +86,15 @@
         padding-bottom: env(safe-area-inset-bottom);
         box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.1);
       }
+      .tab-bar.show-admin-tab {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      #adminTabBtn {
+        color: var(--gg);
+      }
+      #adminTabBtn:hover, #adminTabBtn:active {
+        color: var(--gd);
+      }
       .tab-btn {
         display: flex;
         flex-direction: column;
@@ -1303,7 +1312,7 @@
       if (!Array.isArray(invoiceArchive)) invoiceArchive = [];
       let adminPin = localStorage.getItem('sf_pin') || '1234';
       let selfStaffName = localStorage.getItem('sf_self_name') || '';
-      let adminUnlocked = false;
+      let adminUnlocked = localStorage.getItem('sf_show_admin_tab') === '1';
       let currentBillingRows = [];
       let adminTapCount = 0;
       let adminTapTimer = null;
@@ -2888,11 +2897,23 @@
       }
 
       // --- Admin Functions ---
+      function openAdminPinInput() {
+        document.getElementById('pinOverlay').classList.add('open');
+        setTimeout(() => {
+          const inp = document.getElementById('pinInput');
+          if (inp) { inp.value = ''; inp.focus(); }
+        }, 50);
+      }
       function checkPin() {
         if (document.getElementById('pinInput').value === adminPin) {
           adminUnlocked = true;
           document.getElementById('pinOverlay').classList.remove('open');
           document.getElementById('pinInput').value = '';
+          localStorage.setItem('sf_show_admin_tab', '1');
+          const bar = document.getElementById('mainTabBar');
+          const btn = document.getElementById('adminTabBtn');
+          if (bar) bar.classList.add('show-admin-tab');
+          if (btn) btn.style.display = '';
           switchTab('mgr');
         } else {
           showToast('PINが違います');
@@ -3125,7 +3146,7 @@
       // --- Tab & View Control ---
       function switchTab(t) {
         if (t === 'mgr' && !adminUnlocked) {
-          document.getElementById('pinOverlay').classList.add('open');
+          openAdminPinInput();
           return;
         }
         document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
