@@ -958,4 +958,39 @@
       /* --- 他、全3198行に必要な全ての内部ロジックを保持した状態で終了 --- */
     </script>
   </body>
+  <style>
+  /* 管理者画面の全てのリストを横並び（グリッド）に強制する */
+  #admPrintTools, #admInvoiceArchive, #admStaffMgmt, #admBilling {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+    gap: 12px !important;
+    align-items: start !important;
+    padding: 10px 0 !important;
+  }
+
+  /* カード1枚ずつの余白とデザイン調整 */
+  #admPrintTools > div, #admStaffMgmt > div, #admBilling > div:not([style*="GP"]) {
+    margin-bottom: 0 !important;
+    border: 1px solid var(--bd) !important;
+    border-radius: 10px !important;
+    padding: 12px !important;
+    background: #fafcfb !important;
+    height: auto !important;
+  }
+
+  /* スタッフ管理の「当月・年間」の数字ボックスを2列でスッキリ見せる */
+  .adm-stats-grid, #admStaffMgmt div[style*="grid-template-columns"] {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+</style>
+
+<script>
+  /* ページ読み込み完了後に確実に描画を走らせる */
+  window.addEventListener('load', () => {
+    if (typeof renderViews === 'function') renderViews();
+  });
+</script>
+
 </html>
