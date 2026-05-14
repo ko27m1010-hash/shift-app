@@ -6,13 +6,16 @@
     <meta name="theme-color" content="#2D6A4F">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="シフト管理">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <title>🌾 シフト管理システム</title>
     <style>
       :root {
         --gd: #1b4332; --gm: #2d6a4f; --gg: #40916c; --gl: #74c69d; --gp: #d8f3dc; --gb: #f0f7f4;
         --gold: #d4a017; --red: #c0392b; --blue: #0077b6; --orange: #e67e22;
-        --text: #1a1a1a; --sub: #666; --bd: #c8ddd4;
-        --r: 13px; --sh: 0 2px 10px rgba(0, 0, 0, 0.09);
+        --text: #1a1a1a; --sub: #666; --bd: #c8ddd4; --r: 13px; --sh: 0 2px 10px rgba(0, 0, 0, 0.09);
         --fn: 'Noto Sans JP', sans-serif;
       }
       * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -23,66 +26,68 @@
       .card { background: #fff; margin: 12px; border-radius: 12px; box-shadow: var(--sh); overflow: hidden; }
       .card-head { background: var(--gd); color: #fff; padding: 10px 15px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
       .card-body { padding: 15px; }
-      
-      /* 管理画面：横並び（グリッド）レイアウト */
-      .adm-grid-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-        gap: 12px;
-        align-items: start;
+
+      /* 管理者画面：横並び（グリッド）レイアウトの強制適用 */
+      #admPrintTools, #admInvoiceArchive, #admStaffMgmt, #admBilling {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+        gap: 12px !important;
+        align-items: start !important;
       }
-      .adm-item-card {
-        border: 1px solid var(--bd);
-        border-radius: 10px;
-        padding: 12px;
-        background: #fafcfb;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      #admPrintTools > div, #admStaffMgmt > div, #admBilling > div:not([style*="GP"]) {
+        margin-bottom: 0 !important;
+        border: 1px solid var(--bd) !important;
+        border-radius: 10px !important;
+        padding: 12px !important;
+        background: #fafcfb !important;
+        height: 100% !important;
       }
-      .adm-stats-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        margin-top: 8px;
-      }
-      .adm-stat-box {
-        background: #fff;
-        padding: 8px;
-        border-radius: 8px;
-        text-align: center;
-        border: 1px solid #eee;
-      }
-      
-      .btn-action { background: var(--gm); color: #fff; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; }
-      .btn-danger { background: var(--red); }
-      .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: #fff; border-top: 1px solid var(--bd); display: grid; grid-template-columns: repeat(3, 1fr); padding-bottom: env(safe-area-inset-bottom); }
+      /* 合計バナーを横いっぱいに */
+      div[style*="font-weight:800;color:var(--gd)"] { grid-column: 1 / -1 !important; }
+
+      .btn-action { background: var(--gm); color: #fff; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+      .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: #fff; border-top: 1px solid var(--bd); display: grid; grid-template-columns: repeat(3, 1fr); padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -3px 12px rgba(0,0,0,0.1); }
       .tab-bar.show-admin-tab { grid-template-columns: repeat(4, 1fr); }
-      .tab-btn { display: flex; flex-direction: column; align-items: center; padding: 8px 0; border: none; background: none; color: var(--sub); font-size: 0.7rem; cursor: pointer; }
-      .tab-btn.active { color: var(--gd); font-weight: 900; }
+      .tab-btn { display: flex; flex-direction: column; align-items: center; padding: 10px 0; border: none; background: none; color: var(--sub); font-size: 0.75rem; cursor: pointer; }
+      .tab-btn.active { color: var(--gd); font-weight: 900; background: var(--gp); }
       .tab-panel { display: none; }
       .tab-panel.active { display: block; }
       .overlay { display: none; position: fixed; inset: 0; z-index: 600; background: rgba(0,0,0,0.85); color: #fff; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
       .overlay.open { display: flex; }
-      input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--bd); border-radius: 8px; font-size: 1rem; }
-      @media print { .tab-bar, .hdr, .btn-action { display: none !important; } .sheet { break-after: page; border: 1px solid #000; padding: 20px; margin-bottom: 20px; } }
+      .toast { display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--gg); color: #fff; padding: 10px 20px; border-radius: 8px; font-weight: 700; z-index: 700; }
+      input, select, textarea { width: 100%; padding: 12px; border: 1px solid var(--bd); border-radius: 8px; font-size: 1rem; margin-top: 5px; }
+      .progress-bar { height: 4px; background: #eee; position: fixed; top: 56px; left: 0; right: 0; z-index: 101; display: none; }
+      .progress-fill { height: 100%; background: var(--gl); width: 0%; transition: 0.3s; }
     </style>
 </head>
 <body>
-    <div class="hdr" onclick="triggerAdminAccess()">
+    <div class="hdr" id="mainHeader" onclick="triggerAdminAccess()">
       <div class="hdr-logo">🌾</div>
       <div style="flex: 1">
         <div class="hdr-title">シフト管理システム</div>
         <div style="font-size:0.7rem;opacity:0.8">農業パートスタッフ用</div>
       </div>
     </div>
+    <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progFill"></div></div>
+    <div class="toast" id="toast"></div>
 
     <!-- タブ1：希望入力 -->
     <div class="tab-panel active" id="tab-input">
         <div class="card">
-            <div class="card-head">📝 シフト希望入力</div>
+            <div class="card-head">👤 お名前</div>
             <div class="card-body">
-                <label>お名前</label>
                 <select id="inpName" onchange="onNameChange()"><option value="">選択してください</option></select>
                 <div id="selfLockInfo" style="font-size:0.8rem;color:var(--sub);margin-top:8px"></div>
+            </div>
+        </div>
+        <div id="inputShiftPanel" style="display:none">
+            <div class="card">
+                <div class="card-head">📅 対象月</div>
+                <div class="card-body"><select id="inpMonth" onchange="onMonthChange()"></select></div>
+            </div>
+            <div id="calSection" style="display:none" class="card">
+                <div class="card-head">🗓️ 日付を選択</div>
+                <div class="card-body" id="icGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;"></div>
             </div>
         </div>
     </div>
@@ -90,200 +95,413 @@
     <!-- タブ2：実績入力 -->
     <div class="tab-panel" id="tab-actual">
         <div class="card">
-            <div class="card-head">⏱️ 勤務実績入力</div>
+            <div class="card-head">👤 お名前</div>
             <div class="card-body">
-                <label>お名前</label>
                 <select id="actName" onchange="onActualNameChange()"><option value="">選択してください</option></select>
                 <div id="actualSelfLockInfo" style="font-size:0.8rem;color:var(--sub);margin-top:8px"></div>
+            </div>
+        </div>
+        <div id="actualWorkCard" class="card" style="display:none">
+            <div class="card-head">⏱️ 実績を保存</div>
+            <div class="card-body">
+                <input type="date" id="actDate">
+                <div style="display:flex;gap:10px;margin-top:10px">
+                    <input type="time" id="actStart" value="08:00"> 〜 <input type="time" id="actEnd" value="17:00">
+                </div>
+                <button class="btn-action" style="width:100%;margin-top:15px;" onclick="submitActualWork()">保存する</button>
             </div>
         </div>
     </div>
 
     <!-- タブ3：カレンダー公開 -->
     <div class="tab-panel" id="tab-pub">
-        <div class="card"><div class="card-head">📅 カレンダー</div><div class="card-body" id="pubGrid"></div></div>
+        <div class="card"><div class="card-head">📅 全体カレンダー</div><div class="card-body" id="pubGrid"></div></div>
     </div>
 
-    <!-- タブ4：管理者（グリッドレイアウト版） -->
+    <!-- タブ4：管理者 -->
     <div class="tab-panel" id="tab-mgr">
-        <div class="card">
-            <div class="card-head">🧾 清算書・請求控え</div>
-            <div class="card-body">
-                <div id="admPrintTools" class="adm-grid-container"></div>
-                <div style="margin:20px 0 10px; font-weight:800; color:var(--gd)">🗂️ 農場保管用の請求控え</div>
-                <div id="admInvoiceArchive" class="adm-grid-container"></div>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-head">📊 スタッフ勤務管理</div>
-            <div class="card-body" id="admStaffMgmt" class="adm-grid-container"></div>
-        </div>
+        <div class="card"><div class="card-head">📊 月間集計・精算</div><div class="card-body" id="admBilling"></div></div>
+        <div class="card"><div class="card-head">🧾 清算書・請求控え</div><div class="card-body" id="admPrintTools"></div></div>
+        <div class="card"><div class="card-head">📈 勤務管理（スタッフ別）</div><div class="card-body" id="admStaffMgmt"></div></div>
     </div>
 
     <div class="tab-bar" id="mainTabBar">
-        <button class="tab-btn active" onclick="switchTab('input')"><div style="font-size:1.2rem">📝</div><div>希望を送る</div></button>
-        <button class="tab-btn" onclick="switchTab('actual')"><div style="font-size:1.2rem">⏱️</div><div>実績を入れる</div></button>
-        <button class="tab-btn" onclick="switchTab('pub')"><div style="font-size:1.2rem">📅</div><div>カレンダー</div></button>
-        <button class="tab-btn" id="adminTabBtn" style="display:none" onclick="switchTab('mgr')"><div style="font-size:1.2rem">🔐</div><div>管理</div></button>
+        <button class="tab-btn active" onclick="switchTab('input')"><div>📝</div><div>希望</div></button>
+        <button class="tab-btn" onclick="switchTab('actual')"><div>⏱️</div><div>実績</div></button>
+        <button class="tab-btn" onclick="switchTab('pub')"><div>📅</div><div>予定</div></button>
+        <button class="tab-btn" id="adminTabBtn" style="display:none" onclick="switchTab('mgr')"><div>🔐</div><div>管理</div></button>
     </div>
 
+    <!-- モーダル・オーバーレイ -->
     <div class="overlay" id="pinOverlay">
-        <div style="font-size:3rem">🔐</div>
-        <div style="font-size:1.2rem;font-weight:900;margin-bottom:20px">管理者認証</div>
-        <input type="password" id="pinInput" placeholder="4桁のPIN" maxlength="4" style="width:140px;text-align:center;font-size:1.5rem;letter-spacing:8px">
+        <div style="font-size:1.2rem;margin-bottom:20px">🔐 管理者認証</div>
+        <input type="password" id="pinInput" placeholder="4桁PIN" maxlength="4" style="width:120px;text-align:center;font-size:1.5rem;">
         <div style="margin-top:20px;display:flex;gap:10px">
             <button class="btn-action" onclick="checkPin()">認証</button>
-            <button class="btn-action btn-danger" onclick="closePin()">取消</button>
+            <button class="btn-action" style="background:#666" onclick="closePin()">取消</button>
         </div>
     </div>
     <script>
-      const GAS_URL = "ここにGASのURLを貼ってください";
-      let adminPin = localStorage.getItem('sf_pin') || '1234';
-      let adminUnlocked = localStorage.getItem('sf_show_admin_tab') === '1';
+      /* --- 設定とデータ定義 --- */
+      const GAS_URL = "https://script.google.com/macros/s/AKfycbyol3aRw36McuyYjOfSK-NsRST8PqQHtiU7SUSh5CbYzSc9jyM658AoCBbGNBT5223CDg/exec";
+      const STAFF_PROFILE_PATTERN = "__staff_profile__";
+      const WORK_PLAN_PATTERN = "__work_plan__";
+      const ACTUAL_WORK_PATTERN = "__actual_work__";
+      const STAFF_SEED_VERSION = "2026-05-14-v1";
+
       let staffList = JSON.parse(localStorage.getItem('sf_staff')) || ["堤幸太", "長谷部まさえ"];
       let staffProfiles = JSON.parse(localStorage.getItem('sf_staff_profiles')) || [];
+      let workPlans = JSON.parse(localStorage.getItem('sf_work_plans')) || {};
       let actualWorks = JSON.parse(localStorage.getItem('sf_actual_works')) || [];
+      let submissions = JSON.parse(localStorage.getItem('sf_subs')) || [];
       let invoiceArchive = JSON.parse(localStorage.getItem('sf_invoice_archive')) || [];
-      let adminTapCount = 0; let adminTapTimer = null;
-      let viewYear = new Date().getFullYear(); let viewMonth = new Date().getMonth() + 1;
+      let adminPin = localStorage.getItem('sf_pin') || '1234';
+      let selfStaffName = localStorage.getItem('sf_self_name') || '';
+      let adminUnlocked = localStorage.getItem('sf_show_admin_tab') === '1';
+      
+      let viewYear = new Date().getFullYear(); 
+      let viewMonth = new Date().getMonth() + 1;
+      let adminTapCount = 0; 
+      let adminTapTimer = null;
 
-      document.addEventListener('DOMContentLoaded', () => {
+      /* --- 初期化 --- */
+      document.addEventListener('DOMContentLoaded', async () => {
+          initSelects();
           updateStaffUI();
           if(adminUnlocked) showAdminUI();
+          await loadRemoteData(false);
+          renderViews();
       });
 
+      async function loadRemoteData(showMsg = false) {
+          try {
+              const res = await fetch(`${GAS_URL}?action=list&_=${Date.now()}`);
+              if (!res.ok) return;
+              const data = await res.json();
+              if (data.staff) {
+                  staffList = data.staff;
+                  localStorage.setItem('sf_staff', JSON.stringify(staffList));
+              }
+              if (data.submissions) parseRemoteRecords(data.submissions);
+              if (data.pin) adminPin = String(data.pin);
+              saveDB();
+              updateStaffUI();
+              renderViews();
+              if (showMsg) showToast("データを同期しました");
+          } catch (e) { console.error(e); }
+      }
+
+      function saveDB() {
+          localStorage.setItem('sf_staff', JSON.stringify(staffList));
+          localStorage.setItem('sf_staff_profiles', JSON.stringify(staffProfiles));
+          localStorage.setItem('sf_work_plans', JSON.stringify(workPlans));
+          localStorage.setItem('sf_actual_works', JSON.stringify(actualWorks));
+          localStorage.setItem('sf_subs', JSON.stringify(submissions));
+          localStorage.setItem('sf_invoice_archive', JSON.stringify(invoiceArchive));
+          localStorage.setItem('sf_pin', adminPin);
+          if (selfStaffName) localStorage.setItem('sf_self_name', selfStaffName);
+      }
+
+      function parseRemoteRecords(records) {
+          const incomingProfiles = [];
+          const incomingPlans = {};
+          const incomingActualWorks = [];
+          const shiftSubs = [];
+
+          records.forEach(r => {
+              if (r.pattern === STAFF_PROFILE_PATTERN) {
+                  const p = JSON.parse(r.timeband || '{}');
+                  incomingProfiles.push({ name: r.name, ...p, accessPin: r.note || '' });
+              } else if (r.pattern === WORK_PLAN_PATTERN) {
+                  const p = JSON.parse(r.note || '{}');
+                  incomingPlans[p.dateKey] = p;
+              } else if (r.pattern === ACTUAL_WORK_PATTERN) {
+                  const a = JSON.parse(r.timeband || '{}');
+                  incomingActualWorks.push({ id: r.id, name: r.name, ...a, date: a.date });
+              } else {
+                  shiftSubs.push(r);
+              }
+          });
+          staffProfiles = incomingProfiles;
+          workPlans = incomingPlans;
+          actualWorks = incomingActualWorks.sort((a,b) => b.date.localeCompare(a.date));
+          submissions = shiftSubs;
+      }
+      /* --- 管理者認証・アクセス制御 --- */
       function triggerAdminAccess() {
           adminTapCount++;
           clearTimeout(adminTapTimer);
           adminTapTimer = setTimeout(() => adminTapCount = 0, 1000);
-          if(adminTapCount >= 5) {
+          if (adminTapCount >= 5) {
               adminTapCount = 0;
               document.getElementById('pinOverlay').classList.add('open');
           }
       }
 
       function checkPin() {
-          if(document.getElementById('pinInput').value === adminPin) {
+          const inp = document.getElementById('pinInput').value;
+          if (inp === adminPin) {
               adminUnlocked = true;
               localStorage.setItem('sf_show_admin_tab', '1');
               document.getElementById('pinOverlay').classList.remove('open');
+              document.getElementById('pinInput').value = '';
               showAdminUI();
               switchTab('mgr');
-          } else { alert('PINが違います'); }
+              showToast("管理者モードが有効になりました");
+          } else {
+              showToast("PINが違います");
+          }
       }
-      function closePin() { document.getElementById('pinOverlay').classList.remove('open'); }
+
+      function closePin() {
+          document.getElementById('pinOverlay').classList.remove('open');
+          document.getElementById('pinInput').value = '';
+      }
 
       function showAdminUI() {
           document.getElementById('mainTabBar').classList.add('show-admin-tab');
-          document.getElementById('adminTabBtn').style.display = 'flex';
+          const btn = document.getElementById('adminTabBtn');
+          if (btn) btn.style.display = 'flex';
       }
 
       function switchTab(t) {
-          if(t === 'mgr' && !adminUnlocked) {
+          if (t === 'mgr' && !adminUnlocked) {
               document.getElementById('pinOverlay').classList.add('open');
               return;
           }
           document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-          document.getElementById('tab-' + t)?.classList.add('active');
           document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-          if(t === 'mgr') renderAdminContent();
+          
+          document.getElementById('tab-' + t).classList.add('active');
+          const btns = document.querySelectorAll('.tab-btn');
+          const idxMap = { input: 0, actual: 1, pub: 2, mgr: 3 };
+          if (btns[idxMap[t]]) btns[idxMap[t]].classList.add('active');
+
+          if (t === 'mgr' || t === 'pub') renderViews();
+          window.scrollTo(0,0);
       }
 
-      function formatYen(v) { return '¥' + Math.round(v).toLocaleString(); }
-      function escapeHtml(s) { const div = document.createElement('div'); div.innerText = s; return div.innerHTML; }
-      function getActualWorkHours(w) { 
-          if(!w.start || !w.end) return 0;
-          const s = w.start.split(':').map(Number); const e = w.end.split(':').map(Number);
-          return (e[0]*60 + e[1]) - (s[0]*60 + s[1]) - (Number(w.breakMinutes) || 0) / 60;
-      }
-      function renderAdminContent() {
-          const mgmt = document.getElementById('admStaffMgmt');
-          const printArea = document.getElementById('admPrintTools');
+      /* --- スタッフUI制御 --- */
+      function updateStaffUI() {
+          const shiftSel = document.getElementById('inpName');
+          const actualSel = document.getElementById('actName');
+          const opts = '<option value="">選択してください</option>' + staffList.map(n => `<option value="${n}">${n}</option>`).join('');
           
-          // --- スタッフ勤務管理（グリッド横並び） ---
-          let mgmtHtml = `<div class="adm-grid-container">`;
-          staffList.forEach(name => {
+          if (shiftSel) {
+              shiftSel.innerHTML = selfStaffName ? `<option value="${selfStaffName}">${selfStaffName}</option>` : opts;
+              shiftSel.disabled = !!selfStaffName;
+          }
+          if (actualSel) {
+              actualSel.innerHTML = selfStaffName ? `<option value="${selfStaffName}">${selfStaffName}</option>` : opts;
+              actualSel.disabled = !!selfStaffName;
+          }
+          
+          const lockText = selfStaffName ? `利用者：<strong>${selfStaffName}</strong> <button onclick="clearSelfName()" style="font-size:0.7rem;padding:2px 5px;">変更</button>` : "名前を選択してください";
+          if (document.getElementById('selfLockInfo')) document.getElementById('selfLockInfo').innerHTML = lockText;
+          if (document.getElementById('actualSelfLockInfo')) document.getElementById('actualSelfLockInfo').innerHTML = lockText;
+      }
+
+      function onNameChange() {
+          const val = document.getElementById('inpName').value;
+          if (val && !selfStaffName) {
+              if (confirm(`${val} さんとしてこの端末を固定しますか？`)) {
+                  selfStaffName = val;
+                  saveDB();
+                  updateStaffUI();
+              }
+          }
+          document.getElementById('inputShiftPanel').style.display = val ? 'block' : 'none';
+      }
+
+      function onActualNameChange() {
+          const val = document.getElementById('actName').value;
+          if (val && !selfStaffName) {
+              selfStaffName = val;
+              saveDB();
+              updateStaffUI();
+          }
+          document.getElementById('actualWorkCard').style.display = val ? 'block' : 'none';
+      }
+
+      function clearSelfName() {
+          if (confirm("端末の利用者固定を解除しますか？")) {
+              selfStaffName = "";
+              saveDB();
+              updateStaffUI();
+              document.getElementById('inputShiftPanel').style.display = 'none';
+              document.getElementById('actualWorkCard').style.display = 'none';
+          }
+      }
+      /* --- 管理者画面の描画（横並び・グリッド形式） --- */
+      function renderViews() {
+          const mgmt = document.getElementById('admStaffMgmt');
+          const billing = document.getElementById('admBilling');
+          const printArea = document.getElementById('admPrintTools');
+          if (!mgmt) return;
+
+          // 1. 月間・年間の勤務管理（横並びカード）
+          let mgmtHtml = staffList.map(name => {
               const works = actualWorks.filter(w => w.name === name);
               const mWorks = works.filter(w => w.date && w.date.includes(`${viewYear}-${String(viewMonth).padStart(2,'0')}`));
-              const mHours = mWorks.reduce((sum, w) => {
-                  const s = w.start.split(':').map(Number); const e = w.end.split(':').map(Number);
-                  const diff = (e[0]*60 + e[1]) - (s[0]*60 + s[1]) - (Number(w.breakMinutes) || 0);
-                  return sum + (diff > 0 ? diff / 60 : 0);
-              }, 0);
+              const mHours = mWorks.reduce((sum, w) => sum + getActualWorkHours(w), 0);
+              const yHours = works.reduce((sum, w) => sum + getActualWorkHours(w), 0);
               
-              mgmtHtml += `
+              return `
                 <div class="adm-item-card">
-                  <div style="font-weight:900; color:var(--gd); border-bottom:1px solid #eee; padding-bottom:5px; margin-bottom:8px">👤 ${escapeHtml(name)}</div>
+                  <div style="font-weight:900; color:var(--gd); border-bottom:1px solid #eee; padding-bottom:5px; margin-bottom:8px; display:flex; justify-content:space-between;">
+                    <span>👤 ${escapeHtml(name)}</span>
+                  </div>
                   <div class="adm-stats-grid">
                     <div class="adm-stat-box"><div style="font-size:0.65rem; color:var(--sub)">当月日数</div><div style="font-weight:800">${mWorks.length}日</div></div>
                     <div class="adm-stat-box"><div style="font-size:0.65rem; color:var(--sub)">当月時間</div><div style="font-weight:800">${mHours.toFixed(1)}h</div></div>
                     <div class="adm-stat-box"><div style="font-size:0.65rem; color:var(--sub)">年間日数</div><div style="font-weight:800">${works.length}日</div></div>
-                    <div class="adm-stat-box"><div style="font-size:0.65rem; color:var(--sub)">年間時間</div><div style="font-weight:800">${works.reduce((s,w)=>s+getActualWorkHours(w),0).toFixed(1)}h</div></div>
+                    <div class="adm-stat-box"><div style="font-size:0.65rem; color:var(--sub)">年間時間</div><div style="font-weight:800">${yHours.toFixed(1)}h</div></div>
                   </div>
                 </div>`;
-          });
-          mgmtHtml += `</div>`;
+          }).join('');
           mgmt.innerHTML = mgmtHtml;
 
-          // --- 清算書・印刷（グリッド横並び） ---
-          let printHtml = `<div class="adm-grid-container">`;
-          staffList.forEach(name => {
-              const profile = staffProfiles.find(p => p.name === name) || { hourlyRate: 1100, transportDistance: 0, transportRate: 0 };
+          // 2. 清算・実績管理（横並びカード）
+          let billingHtml = staffList.map(name => {
               const mWorks = actualWorks.filter(w => w.name === name && w.date && w.date.includes(`${viewYear}-${String(viewMonth).padStart(2,'0')}`));
-              if(mWorks.length === 0) return;
-              
-              const mHours = mWorks.reduce((s, w) => s + getActualWorkHours(w), 0);
-              const total = (mHours * profile.hourlyRate) + (mWorks.length * profile.transportDistance * 2 * profile.transportRate);
-              
-              printHtml += `
+              if (mWorks.length === 0) return '';
+              const mHours = mWorks.reduce((sum, w) => sum + getActualWorkHours(w), 0);
+              const profile = staffProfiles.find(p => p.name === name) || { hourlyRate: 0 };
+              const subtotal = Math.round(mHours * (profile.hourlyRate || 1100));
+
+              return `
                 <div class="adm-item-card">
-                  <div style="display:flex; justify-content:space-between; margin-bottom:8px">
+                  <div style="display:flex; justify-content:space-between; margin-bottom:6px">
                     <strong style="color:var(--gd)">${escapeHtml(name)}</strong>
-                    <span style="font-size:0.8rem; font-weight:800">${formatYen(total)}</span>
+                    <span style="font-weight:800">${formatYen(subtotal)}</span>
                   </div>
-                  <div style="font-size:0.75rem; color:var(--sub); margin-bottom:10px">
-                    実績: ${mWorks.length}日 / ${mHours.toFixed(1)}時間
-                  </div>
-                  <div style="display:flex; gap:8px">
-                    <button class="btn-action" style="flex:1" onclick="printSlip('${name}')">🖨️ 印刷</button>
-                    <button class="btn-action" style="flex:1; background:#fff; color:var(--gg); border:1px solid var(--gg)" onclick="saveInv('${name}')">💾 保管</button>
+                  <div style="font-size:0.75rem; color:var(--sub)">
+                    実績 ${mWorks.length}日 / ${mHours.toFixed(2)}時間
                   </div>
                 </div>`;
-          });
-          printHtml += `</div>`;
-          printArea.innerHTML = printHtml || '<div style="text-align:center;width:100%;color:#999">実績データがありません</div>';
+          }).join('');
+          billing.innerHTML = billingHtml || '<div style="grid-column:1/-1;text-align:center;padding:20px;color:#999">実績データなし</div>';
+
+          // 3. 印刷・保管ツール（横並びカード）
+          let printHtml = staffList.map(name => {
+              const hasActual = actualWorks.some(w => w.name === name && w.date.includes(`${viewYear}-${String(viewMonth).padStart(2,'0')}`));
+              if (!hasActual) return '';
+              return `
+                <div class="adm-item-card">
+                  <div style="font-weight:800; margin-bottom:8px">👤 ${escapeHtml(name)}</div>
+                  <div style="display:flex; gap:8px">
+                    <button class="btn-action" style="flex:1; padding:6px;" onclick="printSlip('${escapeHtml(name)}')">🖨️ 印刷</button>
+                    <button class="btn-action" style="flex:1; padding:6px; background:#fff; color:var(--gg); border:1px solid var(--gg)" onclick="saveInvoice('${escapeHtml(name)}')">💾 保管</button>
+                  </div>
+                </div>`;
+          }).join('');
+          printArea.innerHTML = printHtml || '<div style="grid-column:1/-1;text-align:center;padding:20px;color:#999">精算対象なし</div>';
       }
 
-      function updateStaffUI() {
-          const list = staffList.map(n => `<option value="${n}">${n}</option>`).join('');
-          document.getElementById('inpName').innerHTML += list;
-          document.getElementById('actName').innerHTML += list;
+      /* --- ユーティリティ --- */
+      function formatYen(v) { return '¥' + Math.round(v).toLocaleString(); }
+      function escapeHtml(s) { const d = document.createElement('div'); d.innerText = s; return d.innerHTML; }
+      function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000); }
+      function getActualWorkHours(w) {
+          if (!w.start || !w.end) return 0;
+          const [sh, sm] = w.start.split(':').map(Number);
+          const [eh, em] = w.end.split(':').map(Number);
+          const diff = (eh * 60 + em) - (sh * 60 + sm) - (Number(w.breakMinutes) || 0);
+          return diff > 0 ? diff / 60 : 0;
+      }
+      /* --- 入力・送信ロジック --- */
+      function initSelects() {
+          const s = document.getElementById('inpMonth');
+          if (!s) return;
+          const now = new Date();
+          const year = now.getFullYear();
+          s.innerHTML = '';
+          for (let m = 4; m <= 10; m++) {
+              const opt = document.createElement('option');
+              opt.value = `${year}年${m}月`;
+              opt.innerText = `${year}年${m}月`;
+              s.appendChild(opt);
+          }
+          // 初期値は現在の月、または4月
+          const curM = now.getMonth() + 1;
+          s.value = (curM >= 4 && curM <= 10) ? `${year}年${curM}月` : `${year}年4月`;
+      }
+
+      function onMonthChange() {
+          const val = document.getElementById('inpMonth').value;
+          if (val) {
+              const matches = val.match(/(\d+)年(\d+)月/);
+              viewYear = parseInt(matches[1]);
+              viewMonth = parseInt(matches[2]);
+              document.getElementById('calSection').style.display = 'block';
+              renderInpCal();
+          }
+      }
+
+      function renderInpCal() {
+          const grid = document.getElementById('icGrid');
+          if (!grid) return;
+          grid.innerHTML = '';
+          const daysInMonth = new Date(viewYear, viewMonth, 0).getDate();
+          for (let d = 1; d <= daysInMonth; d++) {
+              const div = document.createElement('div');
+              div.style.cssText = "padding:10px; border:1px solid #eee; text-align:center; border-radius:5px; cursor:pointer; background:#fff;";
+              div.innerText = d;
+              div.onclick = () => {
+                  div.style.background = div.style.background === 'rgb(216, 243, 220)' ? '#fff' : '#d8f3dc';
+              };
+              grid.appendChild(div);
+          }
+      }
+
+      async function submitActualWork() {
+          const name = document.getElementById('actName').value;
+          const date = document.getElementById('actDate').value;
+          const start = document.getElementById('actStart').value;
+          const end = document.getElementById('actEnd').value;
+
+          if (!name || !date || !start || !end) {
+              showToast("入力項目が足りません");
+              return;
+          }
+
+          const entry = {
+              id: "act_" + Date.now(),
+              name: name,
+              date: date,
+              start: start,
+              end: end,
+              breakMinutes: 0,
+              timestamp: new Date().toISOString()
+          };
+
+          actualWorks.push(entry);
+          saveDB();
+          renderViews();
+          showToast("実績を保存しました");
+          
+          // 本来はここでGASに送信する処理が入ります
+          console.log("Saving to GAS...", entry);
+      }
+
+      function printSlip(name) {
+          alert(name + " さんの清算書を印刷します（印刷用ウィンドウを準備中）");
+      }
+
+      function saveInvoice(name) {
+          const yearMonth = `${viewYear}年${viewMonth}月`;
+          const entry = {
+              id: "inv_" + Date.now(),
+              name: name,
+              month: yearMonth,
+              savedAt: new Date().toISOString(),
+              total: 10000 // 仮の計算
+          };
+          invoiceArchive.push(entry);
+          saveDB();
+          renderViews();
+          showToast(name + " さんの控えを保存しました");
       }
     </script>
-    <style>
-  /* 管理者画面のリストを横並び（グリッド）に変更 */
-  #admPrintTools, #admInvoiceArchive, #admStaffMgmt {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
-    gap: 12px !important;
-    align-items: start !important;
-    padding: 10px 0 !important;
-  }
-  /* 各スタッフカードのデザイン調整 */
-  #admPrintTools > div, #admStaffMgmt > div {
-    margin-bottom: 0 !important;
-    border: 1px solid var(--bd) !important;
-    border-radius: 10px !important;
-    padding: 12px !important;
-    background: #fafcfb !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
-  }
-  /* 月間・年間などの集計数字を2列でスッキリ見せる */
-  #admStaffMgmt div[style*="grid-template-columns"] {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 8px !important;
-  }
-</style>
-
 </body>
 </html>
