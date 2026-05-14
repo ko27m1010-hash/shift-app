@@ -1282,7 +1282,7 @@
       const GAS_URL = 'https://script.google.com/macros/s/AKfycbyol3aRw36McuyYjOfSK-NsRST8PqQHtiU7SUSh5CbYzSc9jyM658AoCBbGNBT5223CDg/exec';
       const LEGACY_DEFAULT_STAFF = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '田中 美咲', '伊藤 健太'];
       const DEFAULT_STAFF = ['江野', '金森', '佐々木', '立川夏子', '須藤', '武田信一', '中谷', '長谷部', '長谷部まさえ', '平間文美', '平間', '伏見', '真央', '吉園', '古関', '小山内', '野々村', '堤幸太'];
-      const STAFF_SEED_VERSION = '2026-05-14-staff-refresh-2';
+      const STAFF_SEED_VERSION = '2026-05-14-staff-refresh-3';
       const STAFF_PROFILE_PATTERN = '__staff_profile__';
       const WORK_PLAN_PATTERN = '__work_plan__';
       const ACTUAL_WORK_PATTERN = '__actual_work__';
@@ -3278,6 +3278,71 @@
       }
     }, 1000);
   });
+</script>
+<!-- 最終修正：スタッフ名復活 ＆ 管理画面横並び強制適用 -->
+<script>
+  /* 1. スタッフリストを強制的に最新の19名に書き換える */
+  const LATEST_STAFF = ['江野', '金森', '佐々木', '立川夏子', '須藤', '武田信一', '中谷', '長谷部', '長谷部まさえ', '平間文美', '平間', '伏見', '真央', '吉園', '古関', '小山内', '野々村', '堤幸太'];
+  
+  window.addEventListener('load', () => {
+    // ブラウザの記憶を上書きして19名をセット
+    staffList = [...LATEST_STAFF];
+    mergeStaffProfiles(staffList, staffProfiles || []);
+    saveDB(); 
+    
+    // 画面の表示を即座に更新
+    if (typeof updateStaffUI === 'function') updateStaffUI();
+    if (typeof renderViews === 'function') renderViews();
+    console.log('スタッフリストを19名で強制更新しました');
+  });
+</script>
+
+<style>
+  /* 2. 管理画面だけ、スマホ用の横幅制限(520px)を完全に解除して横に広げる */
+  .tab-panel#tab-mgr { 
+    max-width: none !important; 
+    width: 96% !important; 
+    margin: 0 auto !important; 
+  }
+
+  /* 3. 管理画面内のリストをグリッド（横並び）化 */
+  #admPrintTools, #admInvoiceArchive, #admStaffMgmt, #admBilling {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+    padding: 10px 0 !important;
+  }
+
+  /* 4. スタッフ一人一人のカードデザインを整える */
+  #admPrintTools > div, #admStaffMgmt > div, #admBilling > div:not([style*="GP"]) {
+    margin-bottom: 0 !important;
+    border: 1px solid var(--bd) !important;
+    border-radius: 12px !important;
+    padding: 15px !important;
+    background: #fafcfb !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  /* 合計金額バナーのみ横いっぱいに戻す */
+  div[style*="font-weight:800;color:var(--gd)"], div[style*="background:var(--gp)"] {
+    grid-column: 1 / -1 !important;
+  }
+</style>
+
+<script>
+  /* タブ切り替え時に確実に横並びを維持する処理 */
+  const refreshGrid = () => {
+    if (typeof renderViews === 'function') renderViews();
+  };
+  
+  const originalTabFunc = window.switchTab;
+  window.switchTab = function(t) {
+    if (typeof originalTabFunc === 'function') originalTabFunc(t);
+    if (t === 'mgr') setTimeout(refreshGrid, 100);
+  };
 </script>
 
 </body></html>
