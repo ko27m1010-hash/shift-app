@@ -136,8 +136,42 @@
         max-width: 520px;
         margin: 0 auto;
       }
+      /* 管理者画面（タブ4）だけ横幅制限を解除して画面いっぱいに広げる */
+      .tab-panel#tab-mgr {
+        max-width: 1400px;
+        width: 98%;
+      }
       .tab-panel.active {
         display: block;
+      }
+      /* スタッフ勤務管理の各スタッフカードを横並びグリッドにする */
+      #admStaffMgmt > div > div:not(:first-child) {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+        gap: 10px !important;
+      }
+      #admStaffMgmt > div > div:first-child {
+        display: flex !important;
+        gap: 10px !important;
+        flex-wrap: wrap !important;
+      }
+      /* 清算書・請求控え・農場保管控えも横並び */
+      #admPrintTools, #admInvoiceArchive {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
+        gap: 12px !important;
+        align-items: start !important;
+      }
+      #admBilling {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+        gap: 12px !important;
+        align-items: start !important;
+      }
+      #admPrintTools > div:not([style*="text-align:center"]),
+      #admInvoiceArchive > div:not([style*="text-align:center"]),
+      #admBilling > div:not([style*="text-align:center"]) {
+        margin-bottom: 0 !important;
       }
       .card {
         background: #fff;
@@ -2638,8 +2672,8 @@
         const yearHoursTotal = yearActuals.reduce((sum, item) => sum + getActualWorkHours(item), 0);
         el.innerHTML = names.length
           ? `
-            <div style="display:grid;gap:10px">
-              <div style="display:flex;gap:10px;flex-wrap:wrap;text-align:center">
+            <div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;text-align:center;margin-bottom:14px">
                 <div style="flex:1;background:var(--gp);padding:10px;border-radius:10px;min-width:120px">
                   <div style="font-size:1.3rem;font-weight:900;color:var(--gd)">${monthDaysTotal}</div>
                   <div style="font-size:.72rem;color:var(--sub)">${viewYear}年${viewMonth}月の出勤日数</div>
@@ -2657,24 +2691,26 @@
                   <div style="font-size:.72rem;color:var(--sub)">${viewYear}年の年間実働時間</div>
                 </div>
               </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;align-items:stretch">
               ${names.map((name) => {
                 const monthInfo = monthMap[name] || { days: 0, hours: 0, latestDate: '' };
                 const yearInfo = yearMap[name] || { days: 0, hours: 0, latestDate: '' };
                 const latestDate = yearInfo.latestDate || monthInfo.latestDate || '—';
                 return `
-                  <div style="border:1px solid var(--bd);border-radius:10px;padding:10px;background:#fafcfb">
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-                      <strong style="color:var(--gd)">${escapeHtml(name)}</strong>
-                      <span style="font-size:.78rem;color:var(--sub)">直近実績日：${escapeHtml(latestDate)}</span>
+                  <div style="border:1px solid var(--bd);border-radius:10px;padding:10px;background:#fafcfb;display:flex;flex-direction:column;gap:8px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+                      <strong style="color:var(--gd);font-size:.95rem">${escapeHtml(name)}</strong>
+                      <span style="font-size:.72rem;color:var(--sub)">直近：${escapeHtml(latestDate)}</span>
                     </div>
-                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;font-size:.8rem;color:var(--sub)">
-                      <div style="background:#fff;border-radius:8px;padding:8px">当月出勤 <strong style="color:var(--gd)">${monthInfo.days}日</strong></div>
-                      <div style="background:#fff;border-radius:8px;padding:8px">当月時間 <strong style="color:var(--gd)">${formatHours(monthInfo.hours)}</strong></div>
-                      <div style="background:#fff;border-radius:8px;padding:8px">年間出勤 <strong style="color:var(--orange)">${yearInfo.days}日</strong></div>
-                      <div style="background:#fff;border-radius:8px;padding:8px">年間時間 <strong style="color:#22577a">${formatHours(yearInfo.hours)}</strong></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:.75rem;color:var(--sub)">
+                      <div style="background:#fff;border-radius:6px;padding:6px;text-align:center">当月出勤<br><strong style="color:var(--gd);font-size:.9rem">${monthInfo.days}日</strong></div>
+                      <div style="background:#fff;border-radius:6px;padding:6px;text-align:center">当月時間<br><strong style="color:var(--gd);font-size:.9rem">${formatHours(monthInfo.hours)}</strong></div>
+                      <div style="background:#fff;border-radius:6px;padding:6px;text-align:center">年間出勤<br><strong style="color:var(--orange);font-size:.9rem">${yearInfo.days}日</strong></div>
+                      <div style="background:#fff;border-radius:6px;padding:6px;text-align:center">年間時間<br><strong style="color:#22577a;font-size:.9rem">${formatHours(yearInfo.hours)}</strong></div>
                     </div>
                   </div>`;
               }).join('')}
+              </div>
             </div>`
           : '<div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">勤務実績を保存するとスタッフごとの月間・年間状況が表示されます。</div>';
       }
