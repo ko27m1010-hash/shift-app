@@ -139,6 +139,11 @@
       .tab-panel.active {
         display: block;
       }
+      /* 管理者画面のみフル幅で表示（スタッフ画面はモバイル幅を維持） */
+      .tab-panel#tab-mgr {
+        max-width: min(98vw, 1680px);
+        width: 98%;
+      }
       .card {
         background: #fff;
         border-radius: var(--r);
@@ -1391,18 +1396,56 @@
         return res.json();
       }
 
+      // 削除済みスタッフリスト管理（DEFAULT_STAFFから消したい名前を記憶）
+      function getDeletedStaffList() {
+        try {
+          return JSON.parse(localStorage.getItem('sf_deleted_staff') || '[]');
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function addToDeletedStaffList(name) {
+        const trimmed = String(name || '').trim();
+        if (!trimmed) return;
+        const list = getDeletedStaffList();
+        if (!list.includes(trimmed)) {
+          list.push(trimmed);
+          localStorage.setItem('sf_deleted_staff', JSON.stringify(list));
+        }
+      }
+
+      function removeFromDeletedStaffList(name) {
+        const trimmed = String(name || '').trim();
+        if (!trimmed) return;
+        const list = getDeletedStaffList().filter((n) => n !== trimmed);
+        localStorage.setItem('sf_deleted_staff', JSON.stringify(list));
+      }
+
       async function loadRemoteData(showMessage = false) {
         try {
           const data = await gasGet('list');
           if (!data?.ok) throw new Error(data?.message || '同期に失敗しました');
-          // リモートデータと DEFAULT_STAFF を常にマージして、スタッフが消えないようにする
+          // リモートデータと DEFAULT_STAFF を常にマージするが、削除済みリストに含まれる名前は除外
+          const deletedStaff = getDeletedStaffList();
           const remoteStaffRaw = Array.isArray(data.staff) ? data.staff : [];
-          const mergedStaff = [...DEFAULT_STAFF, ...remoteStaffRaw];
-          const normalizedRemoteStaff = ensureSeededStaffList(mergedStaff, true);
+          // GAS側が確実にリモートデータを持っている場合は、それを優先（削除を反映）
+          const useRemoteOnly = remoteStaffRaw.length > 0;
+          let mergedStaff;
+          if (useRemoteOnly) {
+            // リモート側に有効なデータがあれば、それのみ使用（削除が反映されている）
+            mergedStaff = remoteStaffRaw.filter((n) => !deletedStaff.includes(String(n || '').trim()));
+          } else {
+            // リモートが空の場合のみ DEFAULT_STAFF をフォールバックとして使用
+            mergedStaff = DEFAULT_STAFF.filter((n) => !deletedStaff.includes(n));
+          }
+          const normalizedRemoteStaff = normalizeManagedStaffList(mergedStaff, !useRemoteOnly);
           staffList = normalizedRemoteStaff;
-          // リモート側にも常に最新のフルリストを保存し直す
-          if (JSON.stringify(remoteStaffRaw) !== JSON.stringify(normalizedRemoteStaff) || staffSeedVersion !== STAFF_SEED_VERSION) {
+          if (staffSeedVersion !== STAFF_SEED_VERSION) {
             staffSeedVersion = STAFF_SEED_VERSION;
+          }
+          // リモート側にも常に最新のフルリストを保存し直す
+          if (JSON.stringify(remoteStaffRaw) !== JSON.stringify(normalizedRemoteStaff)) {
             try {
               await gasPost({ action: 'saveStaff', staffList, staff: staffList });
             } catch (syncErr) {
@@ -3242,6 +3285,8 @@
               showToast('同じ名前が既に登録されています');
               return;
             }
+            // 削除済みリストから除外（再追加に対応）
+            removeFromDeletedStaffList(n);
             staffList.push(n);
             staffList = normalizeManagedStaffList(staffList, false);
             mergeStaffProfiles(staffList, staffProfiles);
@@ -3282,6 +3327,10 @@
         const oldProfile = getStaffProfile(oldName);
 
         try {
+          // 旧名を削除済みリストに追加（DEFAULT_STAFFからの復活を防ぐ）、新名はリストから除外
+          addToDeletedStaffList(oldName);
+          removeFromDeletedStaffList(newName);
+
           staffList[i] = newName;
           staffList = normalizeManagedStaffList(staffList, false);
           submissions = submissions.map((item) => (item.name === oldName ? { ...item, name: newName } : item));
@@ -3310,11 +3359,10 @@
           updateBanner();
           renderViews();
           showToast('名前を変更しました');
-          await loadRemoteData(false);
+          // loadRemoteData は呼ばない（変更直後に GAS から旧名が復活する可能性があるため）
         } catch (err) {
           console.error(err);
           showToast('名前変更に失敗しました');
-          await loadRemoteData(false);
         }
       }
       async function delStaff(i) {
@@ -3326,6 +3374,9 @@
         const relatedActualIds = actualWorks.filter((item) => item.name === removedName).map((item) => item.id);
 
         try {
+          // 削除済みリストに追加（DEFAULT_STAFFからの復活を防ぐ）
+          addToDeletedStaffList(removedName);
+
           staffList.splice(i, 1);
           staffList = normalizeManagedStaffList(staffList, false);
           staffProfiles = staffProfiles.filter((profile) => profile.name !== removedName);
@@ -3342,11 +3393,10 @@
           updateBanner();
           renderViews();
           showToast('スタッフと関連データを削除しました');
-          await loadRemoteData(false);
+          // loadRemoteData は呼ばない（削除直後に GAS から復活する可能性があるため）
         } catch (err) {
           console.error(err);
           showToast('スタッフ削除に失敗しました');
-          await loadRemoteData(false);
         }
       }
       async function delMonthData() {
@@ -3453,21 +3503,14 @@
       }
     </script>
 
-    <!-- 管理者画面の横幅制限解除と横並びグリッド適用 -->
+    <!-- 管理者画面の横幅制限解除（最優先） -->
     <style>
-      /* 管理者タブの横幅制限を解除（PC画面では広く使う） */
+      /* 管理者タブの横幅制限を完全解除（PC画面でフル幅利用） */
       .tab-panel#tab-mgr {
-        max-width: 1400px !important;
+        max-width: min(98vw, 1680px) !important;
         width: 98% !important;
         margin: 0 auto !important;
         padding: 14px !important;
-      }
-
-      /* 清算書・請求控えも横並びグリッド */
-      #admPrintTools, #admInvoiceArchive {
-        display: grid !important;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
-        gap: 12px !important;
       }
     </style>
 
