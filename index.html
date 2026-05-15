@@ -1389,10 +1389,13 @@
         try {
           const data = await gasGet('list');
           if (!data?.ok) throw new Error(data?.message || '同期に失敗しました');
-          const remoteStaff = Array.isArray(data.staff) ? data.staff : [...DEFAULT_STAFF];
-          const normalizedRemoteStaff = ensureSeededStaffList(remoteStaff, !Array.isArray(data.staff));
+          // リモートデータと DEFAULT_STAFF を常にマージして、スタッフが消えないようにする
+          const remoteStaffRaw = Array.isArray(data.staff) ? data.staff : [];
+          const mergedStaff = [...DEFAULT_STAFF, ...remoteStaffRaw];
+          const normalizedRemoteStaff = ensureSeededStaffList(mergedStaff, true);
           staffList = normalizedRemoteStaff;
-          if (JSON.stringify(remoteStaff) !== JSON.stringify(normalizedRemoteStaff) || staffSeedVersion !== STAFF_SEED_VERSION) {
+          // リモート側にも常に最新のフルリストを保存し直す
+          if (JSON.stringify(remoteStaffRaw) !== JSON.stringify(normalizedRemoteStaff) || staffSeedVersion !== STAFF_SEED_VERSION) {
             staffSeedVersion = STAFF_SEED_VERSION;
             try {
               await gasPost({ action: 'saveStaff', staffList, staff: staffList });
@@ -1446,9 +1449,12 @@
 
       function ensureSeededStaffList(list, fallbackToDefault = false) {
         const normalized = normalizeManagedStaffList(list, fallbackToDefault);
-        if (staffSeedVersion === STAFF_SEED_VERSION) return normalized;
-        staffSeedVersion = STAFF_SEED_VERSION;
-        return normalizeManagedStaffList([...DEFAULT_STAFF, ...normalized], true);
+        // 常に DEFAULT_STAFF をマージして、リモートデータが古くてもスタッフが消えないようにする
+        const merged = normalizeManagedStaffList([...DEFAULT_STAFF, ...normalized], true);
+        if (staffSeedVersion !== STAFF_SEED_VERSION) {
+          staffSeedVersion = STAFF_SEED_VERSION;
+        }
+        return merged;
       }
 
       function normalize4DigitPin(value) {
