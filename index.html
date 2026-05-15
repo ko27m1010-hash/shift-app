@@ -136,42 +136,8 @@
         max-width: 520px;
         margin: 0 auto;
       }
-      /* 管理者画面（タブ4）だけ横幅制限を解除して画面いっぱいに広げる */
-      .tab-panel#tab-mgr {
-        max-width: 1400px;
-        width: 98%;
-      }
       .tab-panel.active {
         display: block;
-      }
-      /* スタッフ勤務管理の各スタッフカードを横並びグリッドにする */
-      #admStaffMgmt > div > div:not(:first-child) {
-        display: grid !important;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
-        gap: 10px !important;
-      }
-      #admStaffMgmt > div > div:first-child {
-        display: flex !important;
-        gap: 10px !important;
-        flex-wrap: wrap !important;
-      }
-      /* 清算書・請求控え・農場保管控えも横並び */
-      #admPrintTools, #admInvoiceArchive {
-        display: grid !important;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
-        gap: 12px !important;
-        align-items: start !important;
-      }
-      #admBilling {
-        display: grid !important;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
-        gap: 12px !important;
-        align-items: start !important;
-      }
-      #admPrintTools > div:not([style*="text-align:center"]),
-      #admInvoiceArchive > div:not([style*="text-align:center"]),
-      #admBilling > div:not([style*="text-align:center"]) {
-        margin-bottom: 0 !important;
       }
       .card {
         background: #fff;
@@ -1150,11 +1116,13 @@
               <div id="admInvoiceArchive"><div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この端末に保管した請求控えがここに表示されます。</div></div>
             </div>
           </div>
-          <div class="card">
-            <div class="card-head">📈<span class="ch-title">スタッフ勤務管理</span></div>
-            <div class="card-body" id="admStaffMgmt"><div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">管理者専用でスタッフごとの月間・年間の勤務状況を確認できます。</div></div>
-          </div>
         </div>
+      </div>
+
+      <!-- スタッフ勤務管理（フル幅で横並び表示） -->
+      <div class="card" style="margin-top:15px">
+        <div class="card-head">📈<span class="ch-title">スタッフ勤務管理</span></div>
+        <div class="card-body" id="admStaffMgmt"><div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">管理者専用でスタッフごとの月間・年間の勤務状況を確認できます。</div></div>
       </div>
 
       <div class="mgr-admin-grid">
@@ -1830,13 +1798,65 @@
         );
 
         const sl = document.getElementById('staffList');
-        sl.innerHTML = staffList
-          .map((n, i) => {
+
+        // 並び順の適用（保存設定とlocalStorageから取得）
+        const profileSortOrder = localStorage.getItem('sf_profile_sort_order') || 'addedOrder';
+        const indexedStaff = staffList.map((n, originalIndex) => ({ name: n, originalIndex }));
+        switch (profileSortOrder) {
+          case 'aiueo':
+            indexedStaff.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+            break;
+          case 'hourlyRateDesc':
+            indexedStaff.sort((a, b) => {
+              const ra = Number(getStaffProfile(a.name).hourlyRate || 0);
+              const rb = Number(getStaffProfile(b.name).hourlyRate || 0);
+              if (rb !== ra) return rb - ra;
+              return a.name.localeCompare(b.name, 'ja');
+            });
+            break;
+          case 'distanceDesc':
+            indexedStaff.sort((a, b) => {
+              const da = Number(getStaffProfile(a.name).transportDistance || 0);
+              const db = Number(getStaffProfile(b.name).transportDistance || 0);
+              if (db !== da) return db - da;
+              return a.name.localeCompare(b.name, 'ja');
+            });
+            break;
+          case 'pinSet':
+            // PIN設定済みを先に、その後五十音順
+            indexedStaff.sort((a, b) => {
+              const pa = getStaffProfile(a.name).accessPin ? 0 : 1;
+              const pb = getStaffProfile(b.name).accessPin ? 0 : 1;
+              if (pa !== pb) return pa - pb;
+              return a.name.localeCompare(b.name, 'ja');
+            });
+            break;
+          case 'addedOrder':
+          default:
+            // 追加順（元のまま）
+            break;
+        }
+
+        // 並び順セレクター
+        const sortSelectorHtml = `
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;background:var(--gb);border-radius:10px;margin-bottom:12px">
+            <div style="font-size:.85rem;color:var(--gd);font-weight:800">🔀 並び順</div>
+            <select onchange="changeProfileSortOrder(this.value)" style="width:auto;padding:6px 10px;font-size:.85rem">
+              <option value="addedOrder" ${profileSortOrder === 'addedOrder' ? 'selected' : ''}>追加順（登録順）</option>
+              <option value="aiueo" ${profileSortOrder === 'aiueo' ? 'selected' : ''}>五十音順（あいうえお）</option>
+              <option value="hourlyRateDesc" ${profileSortOrder === 'hourlyRateDesc' ? 'selected' : ''}>時給が高い順</option>
+              <option value="distanceDesc" ${profileSortOrder === 'distanceDesc' ? 'selected' : ''}>片道距離が長い順</option>
+              <option value="pinSet" ${profileSortOrder === 'pinSet' ? 'selected' : ''}>PIN設定済みを先頭に</option>
+            </select>
+          </div>`;
+
+        const cardsHtml = indexedStaff
+          .map(({ name: n, originalIndex: i }) => {
             const profile = getStaffProfile(n);
             const dailyTransport = getDailyTransport(profile);
             const unitTotal = getDailyUnitTotal(profile);
             return `
-              <div style="border: 1px solid var(--bd); border-radius: 12px; padding: 12px; margin-bottom: 12px; background: #fafcfb;">
+              <div style="border: 1px solid var(--bd); border-radius: 12px; padding: 12px; background: #fafcfb;">
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
                   <div style="font-weight:900; color:var(--gd)">👤 ${n}</div>
                   <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -1844,30 +1864,41 @@
                     <button class="btn-action btn-danger" style="padding:4px 10px;font-size:.75rem" onclick="delStaff(${i})">削除</button>
                   </div>
                 </div>
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-bottom:10px;">
-                  <label style="font-size:.78rem; color:var(--sub)">時給（1時間）
-                    <input type="number" id="sp_rate_${i}" placeholder="例 1100" value="${Number(profile.hourlyRate || 0) || ''}" style="margin-top:4px">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:10px;">
+                  <label style="font-size:.75rem; color:var(--sub)">時給（1時間）
+                    <input type="number" id="sp_rate_${i}" placeholder="例 1100" value="${Number(profile.hourlyRate || 0) || ''}" style="margin-top:4px;padding:8px">
                   </label>
-                  <label style="font-size:.78rem; color:var(--sub)">片道距離（km）
-                    <input type="number" step="0.1" id="sp_dist_${i}" placeholder="例 12" value="${Number(profile.transportDistance || 0) || ''}" style="margin-top:4px">
+                  <label style="font-size:.75rem; color:var(--sub)">片道距離（km）
+                    <input type="number" step="0.1" id="sp_dist_${i}" placeholder="例 12" value="${Number(profile.transportDistance || 0) || ''}" style="margin-top:4px;padding:8px">
                   </label>
-                  <label style="font-size:.78rem; color:var(--sub)">交通費単価（円/km）
-                    <input type="number" step="0.1" id="sp_trans_${i}" placeholder="例 20" value="${Number(profile.transportRate || 0) || ''}" style="margin-top:4px">
+                  <label style="font-size:.75rem; color:var(--sub)">交通費単価（円/km）
+                    <input type="number" step="0.1" id="sp_trans_${i}" placeholder="例 20" value="${Number(profile.transportRate || 0) || ''}" style="margin-top:4px;padding:8px">
                   </label>
-                  <label style="font-size:.78rem; color:var(--sub)">本人用4桁PIN（管理者確認用）
-                    <input type="text" inputmode="numeric" maxlength="4" id="sp_pin_${i}" placeholder="例 0425" value="${profile.accessPin || ''}" style="margin-top:4px">
+                  <label style="font-size:.75rem; color:var(--sub)">本人用4桁PIN
+                    <input type="text" inputmode="numeric" maxlength="4" id="sp_pin_${i}" placeholder="例 0425" value="${profile.accessPin || ''}" style="margin-top:4px;padding:8px">
                   </label>
                 </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-                  <div style="font-size:.8rem; color:var(--sub); line-height:1.7;">
-                    <div>1勤務の交通費見込み：<strong style="color:var(--gd)">${formatYen(dailyTransport)}</strong></div>
-                    <div>8時間勤務時の概算：<strong style="color:var(--gd)">${formatYen(unitTotal)}</strong></div>
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <div style="font-size:.72rem; color:var(--sub); line-height:1.6;">
+                    <div>交通費見込み：<strong style="color:var(--gd)">${formatYen(dailyTransport)}</strong></div>
+                    <div>8時間概算：<strong style="color:var(--gd)">${formatYen(unitTotal)}</strong></div>
                   </div>
-                  <button class="btn-action" onclick="saveStaffProfileByIndex(${i})">保存</button>
+                  <button class="btn-action" style="padding:6px 14px;font-size:.85rem" onclick="saveStaffProfileByIndex(${i})">保存</button>
                 </div>
               </div>`;
           })
           .join('');
+
+        sl.innerHTML = `
+          ${sortSelectorHtml}
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+            ${cardsHtml}
+          </div>`;
+      }
+
+      function changeProfileSortOrder(value) {
+        localStorage.setItem('sf_profile_sort_order', value);
+        updateStaffUI();
       }
 
       // --- UI Helpers ---
@@ -2608,42 +2639,136 @@
           </div>`;
       }
 
+      // 請求控えの表示モード（'current' = 今月のみ / 'past' = 過去データ）
+      let invoiceViewMode = localStorage.getItem('sf_invoice_view_mode') || 'current';
+
+      function changeInvoiceViewMode(mode) {
+        invoiceViewMode = mode;
+        localStorage.setItem('sf_invoice_view_mode', mode);
+        renderInvoiceArchive();
+      }
+
       function renderInvoiceArchive() {
         const el = document.getElementById('admInvoiceArchive');
         if (!el) return;
-        const monthEntries = invoiceArchive
-          .filter((item) => Number(item.year) === viewYear && Number(item.month) === viewMonth)
-          .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
-        if (!monthEntries.length) {
-          el.innerHTML = '<div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この月の農場保管用請求控えはまだありません。「保管」を押すと控えが残ります。</div>';
-          return;
-        }
-        const total = monthEntries.reduce((sum, item) => sum + Number(item.monthlyTotal || 0), 0);
-        el.innerHTML = `
-          <div style="display:grid;gap:10px">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:#fff8e8;padding:10px 12px;border-radius:10px">
-              <div>
-                <div style="font-weight:900;color:var(--orange)">${viewYear}年${viewMonth}月 の保管控え</div>
-                <div style="font-size:.78rem;color:var(--sub)">${monthEntries.length} 件 / 合計 ${formatYen(total)}</div>
-              </div>
-              <button class="btn-action btn-danger" style="padding:6px 10px;font-size:.78rem" onclick="deleteMonthArchivedInvoices()">この月の控えを削除</button>
-            </div>
-            ${monthEntries.map((entry) => {
-              const savedAt = entry.savedAt ? new Date(entry.savedAt).toLocaleString('ja-JP') : '保存日時なし';
-              return `
-                <div style="border:1px solid var(--bd);border-radius:10px;padding:10px;background:#fff">
-                  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
-                    <strong style="color:var(--gd)">${escapeHtml(entry.name)}</strong>
-                    <span style="font-size:.8rem;color:var(--sub)">${formatYen(entry.monthlyTotal)} / 保存 ${escapeHtml(savedAt)}</span>
-                  </div>
-                  <div style="font-size:.78rem;color:var(--sub);margin-bottom:8px">出勤 ${Number(entry.actualDays || 0)}日 ・ 実働 ${formatHours(entry.actualHours)} ・ 交通費 ${formatYen(entry.transportTotal)}</div>
-                  <div style="display:flex;gap:8px;flex-wrap:wrap">
-                    <button class="btn-action" style="padding:6px 10px;font-size:.78rem" onclick="printArchivedInvoice('${entry.id}')">再印刷</button>
-                    <button class="btn-action btn-danger" style="padding:6px 10px;font-size:.78rem" onclick="deleteArchivedInvoice('${entry.id}')">削除</button>
-                  </div>
-                </div>`;
-            }).join('')}
+
+        // タブ切り替えUI（共通）
+        const tabsHtml = `
+          <div style="display:flex;gap:6px;margin-bottom:10px;padding:4px;background:var(--gb);border-radius:10px">
+            <button onclick="changeInvoiceViewMode('current')" style="flex:1;padding:8px 12px;border:none;border-radius:8px;cursor:pointer;font-weight:800;font-size:.85rem;${invoiceViewMode === 'current' ? 'background:var(--gm);color:#fff' : 'background:transparent;color:var(--sub)'}">📅 今月のみ</button>
+            <button onclick="changeInvoiceViewMode('past')" style="flex:1;padding:8px 12px;border:none;border-radius:8px;cursor:pointer;font-weight:800;font-size:.85rem;${invoiceViewMode === 'past' ? 'background:var(--orange);color:#fff' : 'background:transparent;color:var(--sub)'}">🗂️ 過去データ</button>
           </div>`;
+
+        if (invoiceViewMode === 'current') {
+          // === 今月のみ表示 ===
+          const monthEntries = invoiceArchive
+            .filter((item) => Number(item.year) === viewYear && Number(item.month) === viewMonth)
+            .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+          if (!monthEntries.length) {
+            el.innerHTML = `${tabsHtml}<div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この月の農場保管用請求控えはまだありません。「保管」を押すと控えが残ります。</div>`;
+            return;
+          }
+          const total = monthEntries.reduce((sum, item) => sum + Number(item.monthlyTotal || 0), 0);
+          el.innerHTML = `
+            ${tabsHtml}
+            <div style="display:grid;gap:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:#fff8e8;padding:10px 12px;border-radius:10px">
+                <div>
+                  <div style="font-weight:900;color:var(--orange)">${viewYear}年${viewMonth}月 の保管控え</div>
+                  <div style="font-size:.78rem;color:var(--sub)">${monthEntries.length} 件 / 合計 ${formatYen(total)}</div>
+                </div>
+                <button class="btn-action btn-danger" style="padding:6px 10px;font-size:.78rem" onclick="deleteMonthArchivedInvoices()">この月の控えを削除</button>
+              </div>
+              ${monthEntries.map((entry) => {
+                const savedAt = entry.savedAt ? new Date(entry.savedAt).toLocaleString('ja-JP') : '保存日時なし';
+                return `
+                  <div style="border:1px solid var(--bd);border-radius:10px;padding:10px;background:#fff">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+                      <strong style="color:var(--gd)">${escapeHtml(entry.name)}</strong>
+                      <span style="font-size:.8rem;color:var(--sub)">${formatYen(entry.monthlyTotal)} / 保存 ${escapeHtml(savedAt)}</span>
+                    </div>
+                    <div style="font-size:.78rem;color:var(--sub);margin-bottom:8px">出勤 ${Number(entry.actualDays || 0)}日 ・ 実働 ${formatHours(entry.actualHours)} ・ 交通費 ${formatYen(entry.transportTotal)}</div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                      <button class="btn-action" style="padding:6px 10px;font-size:.78rem" onclick="printArchivedInvoice('${entry.id}')">再印刷</button>
+                      <button class="btn-action btn-danger" style="padding:6px 10px;font-size:.78rem" onclick="deleteArchivedInvoice('${entry.id}')">削除</button>
+                    </div>
+                  </div>`;
+              }).join('')}
+            </div>`;
+        } else {
+          // === 過去データ表示（月別グループ化） ===
+          const pastEntries = invoiceArchive
+            .filter((item) => !(Number(item.year) === viewYear && Number(item.month) === viewMonth))
+            .sort((a, b) => {
+              const ka = `${a.year}-${String(a.month).padStart(2,'0')}`;
+              const kb = `${b.year}-${String(b.month).padStart(2,'0')}`;
+              if (kb !== ka) return kb.localeCompare(ka);
+              return a.name.localeCompare(b.name, 'ja');
+            });
+
+          if (!pastEntries.length) {
+            el.innerHTML = `${tabsHtml}<div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">過去の保管控えはまだありません。</div>`;
+            return;
+          }
+
+          // 月別グルーピング
+          const grouped = {};
+          pastEntries.forEach((entry) => {
+            const key = `${entry.year}-${String(entry.month).padStart(2,'0')}`;
+            if (!grouped[key]) grouped[key] = { label: entry.monthLabel || `${entry.year}年${entry.month}月`, year: entry.year, month: entry.month, items: [] };
+            grouped[key].items.push(entry);
+          });
+
+          const groupKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+          const grandTotal = pastEntries.reduce((sum, item) => sum + Number(item.monthlyTotal || 0), 0);
+
+          el.innerHTML = `
+            ${tabsHtml}
+            <div style="display:grid;gap:10px">
+              <div style="background:#eef6ff;padding:10px 12px;border-radius:10px">
+                <div style="font-weight:900;color:#22577a">📊 過去データ集計</div>
+                <div style="font-size:.78rem;color:var(--sub)">${groupKeys.length} ヶ月分 / ${pastEntries.length} 件 / 合計 ${formatYen(grandTotal)}</div>
+              </div>
+              ${groupKeys.map((key) => {
+                const group = grouped[key];
+                const monthTotal = group.items.reduce((sum, item) => sum + Number(item.monthlyTotal || 0), 0);
+                return `
+                  <details style="border:1px solid var(--bd);border-radius:10px;background:#fff;overflow:hidden">
+                    <summary style="padding:10px 12px;background:#fafcfb;cursor:pointer;font-weight:800;color:var(--gd);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+                      <span>📅 ${escapeHtml(group.label)}</span>
+                      <span style="font-size:.8rem;color:var(--sub);font-weight:normal">${group.items.length}件 / ${formatYen(monthTotal)}</span>
+                    </summary>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;padding:10px">
+                      ${group.items.map((entry) => {
+                        const savedAt = entry.savedAt ? new Date(entry.savedAt).toLocaleString('ja-JP') : '保存日時なし';
+                        return `
+                          <div style="border:1px solid var(--bd);border-radius:8px;padding:8px;background:#fafcfb">
+                            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+                              <strong style="color:var(--gd);font-size:.9rem">${escapeHtml(entry.name)}</strong>
+                              <span style="font-size:.75rem;color:var(--sub)">${formatYen(entry.monthlyTotal)}</span>
+                            </div>
+                            <div style="font-size:.72rem;color:var(--sub);margin-bottom:6px">出勤 ${Number(entry.actualDays || 0)}日・${formatHours(entry.actualHours)}</div>
+                            <div style="font-size:.68rem;color:var(--sub);margin-bottom:6px">保存：${escapeHtml(savedAt)}</div>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                              <button class="btn-action" style="padding:4px 8px;font-size:.72rem" onclick="printArchivedInvoice('${entry.id}')">再印刷</button>
+                              <button class="btn-action btn-danger" style="padding:4px 8px;font-size:.72rem" onclick="deleteArchivedInvoice('${entry.id}')">削除</button>
+                            </div>
+                          </div>`;
+                      }).join('')}
+                    </div>
+                  </details>`;
+              }).join('')}
+            </div>`;
+        }
+      }
+
+      // スタッフ勤務管理の並び順（localStorage で保持）
+      let staffSortOrder = localStorage.getItem('sf_staff_sort_order') || 'aiueo';
+
+      function changeStaffSortOrder(value) {
+        staffSortOrder = value;
+        localStorage.setItem('sf_staff_sort_order', value);
+        renderStaffManagement();
       }
 
       function renderStaffManagement() {
@@ -2665,42 +2790,117 @@
           yearMap[item.name].hours += getActualWorkHours(item);
           if (!yearMap[item.name].latestDate || String(item.date) > yearMap[item.name].latestDate) yearMap[item.name].latestDate = String(item.date || '');
         });
-        const names = Array.from(new Set([...staffList, ...Object.keys(monthMap), ...Object.keys(yearMap)])).sort((a, b) => a.localeCompare(b, 'ja'));
+
+        // 並び順の適用
+        let names = Array.from(new Set([...staffList, ...Object.keys(monthMap), ...Object.keys(yearMap)]));
+        const staffOrderIndex = new Map(staffList.map((n, i) => [n, i]));
+        switch (staffSortOrder) {
+          case 'monthDays':
+            // 当月出勤多い順（同数なら五十音順）
+            names.sort((a, b) => {
+              const da = monthMap[a]?.days || 0;
+              const db = monthMap[b]?.days || 0;
+              if (db !== da) return db - da;
+              return a.localeCompare(b, 'ja');
+            });
+            break;
+          case 'monthHours':
+            // 当月実働時間多い順（同数なら五十音順）
+            names.sort((a, b) => {
+              const ha = monthMap[a]?.hours || 0;
+              const hb = monthMap[b]?.hours || 0;
+              if (hb !== ha) return hb - ha;
+              return a.localeCompare(b, 'ja');
+            });
+            break;
+          case 'yearDays':
+            // 年間出勤多い順
+            names.sort((a, b) => {
+              const da = yearMap[a]?.days || 0;
+              const db = yearMap[b]?.days || 0;
+              if (db !== da) return db - da;
+              return a.localeCompare(b, 'ja');
+            });
+            break;
+          case 'yearHours':
+            // 年間実働時間多い順
+            names.sort((a, b) => {
+              const ha = yearMap[a]?.hours || 0;
+              const hb = yearMap[b]?.hours || 0;
+              if (hb !== ha) return hb - ha;
+              return a.localeCompare(b, 'ja');
+            });
+            break;
+          case 'addedOrder':
+            // 追加順（staffList の登録順）
+            names.sort((a, b) => {
+              const ia = staffOrderIndex.has(a) ? staffOrderIndex.get(a) : 9999;
+              const ib = staffOrderIndex.has(b) ? staffOrderIndex.get(b) : 9999;
+              if (ia !== ib) return ia - ib;
+              return a.localeCompare(b, 'ja');
+            });
+            break;
+          case 'aiueo':
+          default:
+            // 五十音順
+            names.sort((a, b) => a.localeCompare(b, 'ja'));
+            break;
+        }
+
         const monthDaysTotal = monthActuals.length;
         const monthHoursTotal = monthActuals.reduce((sum, item) => sum + getActualWorkHours(item), 0);
         const yearDaysTotal = yearActuals.length;
         const yearHoursTotal = yearActuals.reduce((sum, item) => sum + getActualWorkHours(item), 0);
+
+        // 並び順セレクター
+        const sortSelectorHtml = `
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;background:var(--gb);border-radius:10px">
+            <div style="font-size:.85rem;color:var(--gd);font-weight:800">🔀 並び順</div>
+            <select onchange="changeStaffSortOrder(this.value)" style="width:auto;padding:6px 10px;font-size:.85rem">
+              <option value="aiueo" ${staffSortOrder === 'aiueo' ? 'selected' : ''}>五十音順（あいうえお）</option>
+              <option value="monthDays" ${staffSortOrder === 'monthDays' ? 'selected' : ''}>当月出勤多い順</option>
+              <option value="monthHours" ${staffSortOrder === 'monthHours' ? 'selected' : ''}>当月実働時間多い順</option>
+              <option value="yearDays" ${staffSortOrder === 'yearDays' ? 'selected' : ''}>年間出勤多い順</option>
+              <option value="yearHours" ${staffSortOrder === 'yearHours' ? 'selected' : ''}>年間実働時間多い順</option>
+              <option value="addedOrder" ${staffSortOrder === 'addedOrder' ? 'selected' : ''}>追加順（登録順）</option>
+            </select>
+          </div>`;
+
         el.innerHTML = names.length
           ? `
-            <div>
-              <div style="display:flex;gap:10px;flex-wrap:wrap;text-align:center;margin-bottom:14px">
-                <div style="flex:1;background:var(--gp);padding:10px;border-radius:10px;min-width:120px">
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;text-align:center">
+                <div style="background:var(--gp);padding:10px;border-radius:10px">
                   <div style="font-size:1.3rem;font-weight:900;color:var(--gd)">${monthDaysTotal}</div>
                   <div style="font-size:.72rem;color:var(--sub)">${viewYear}年${viewMonth}月の出勤日数</div>
                 </div>
-                <div style="flex:1;background:var(--gb);padding:10px;border-radius:10px;min-width:120px">
+                <div style="background:var(--gb);padding:10px;border-radius:10px">
                   <div style="font-size:1.3rem;font-weight:900;color:var(--gd)">${formatHours(monthHoursTotal)}</div>
                   <div style="font-size:.72rem;color:var(--sub)">${viewYear}年${viewMonth}月の実働時間</div>
                 </div>
-                <div style="flex:1;background:#fff8e8;padding:10px;border-radius:10px;min-width:120px">
+                <div style="background:#fff8e8;padding:10px;border-radius:10px">
                   <div style="font-size:1.3rem;font-weight:900;color:var(--orange)">${yearDaysTotal}</div>
                   <div style="font-size:.72rem;color:var(--sub)">${viewYear}年の年間出勤日数</div>
                 </div>
-                <div style="flex:1;background:#eef6ff;padding:10px;border-radius:10px;min-width:120px">
+                <div style="background:#eef6ff;padding:10px;border-radius:10px">
                   <div style="font-size:1.3rem;font-weight:900;color:#22577a">${formatHours(yearHoursTotal)}</div>
                   <div style="font-size:.72rem;color:var(--sub)">${viewYear}年の年間実働時間</div>
                 </div>
               </div>
-              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;align-items:stretch">
-              ${names.map((name) => {
+              ${sortSelectorHtml}
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">
+              ${names.map((name, index) => {
                 const monthInfo = monthMap[name] || { days: 0, hours: 0, latestDate: '' };
                 const yearInfo = yearMap[name] || { days: 0, hours: 0, latestDate: '' };
                 const latestDate = yearInfo.latestDate || monthInfo.latestDate || '—';
+                const rankBadge = (staffSortOrder !== 'aiueo' && staffSortOrder !== 'addedOrder')
+                  ? `<span style="background:var(--gm);color:#fff;padding:1px 6px;border-radius:8px;font-size:.65rem;font-weight:900">${index + 1}位</span>`
+                  : '';
                 return `
-                  <div style="border:1px solid var(--bd);border-radius:10px;padding:10px;background:#fafcfb;display:flex;flex-direction:column;gap:8px">
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-                      <strong style="color:var(--gd);font-size:.95rem">${escapeHtml(name)}</strong>
-                      <span style="font-size:.72rem;color:var(--sub)">直近：${escapeHtml(latestDate)}</span>
+                  <div style="border:1px solid var(--bd);border-radius:10px;padding:10px;background:#fafcfb">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+                      <strong style="color:var(--gd);font-size:.95rem">${rankBadge} ${escapeHtml(name)}</strong>
+                      <span style="font-size:.7rem;color:var(--sub)">直近：${escapeHtml(latestDate)}</span>
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:.75rem;color:var(--sub)">
                       <div style="background:#fff;border-radius:6px;padding:6px;text-align:center">当月出勤<br><strong style="color:var(--gd);font-size:.9rem">${monthInfo.days}日</strong></div>
@@ -3236,7 +3436,24 @@
         checkDesktopView();
       }
     </script>
-  
+
+    <!-- 管理者画面の横幅制限解除と横並びグリッド適用 -->
+    <style>
+      /* 管理者タブの横幅制限を解除（PC画面では広く使う） */
+      .tab-panel#tab-mgr {
+        max-width: 1400px !important;
+        width: 98% !important;
+        margin: 0 auto !important;
+        padding: 14px !important;
+      }
+
+      /* 清算書・請求控えも横並びグリッド */
+      #admPrintTools, #admInvoiceArchive {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+        gap: 12px !important;
+      }
+    </style>
 
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body></html>
