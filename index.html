@@ -1107,6 +1107,14 @@
       </div>
     </div></div>
           </div>
+
+          <!-- 作業予定スケジュール -->
+          <div class="card">
+            <div class="card-head">📋<span class="ch-title">作業予定スケジュール</span></div>
+            <div class="card-body" id="admWorkSchedule">
+              <div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">作業マスターを登録すると、ここから作業計画を立てられます。</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1148,23 +1156,40 @@
             <div id="staffList"></div>
           </div>
         </div>
-        <div class="card">
-          <div class="card-head">⚙️<span class="ch-title">管理者設定</span></div>
-          <div class="card-body">
-            <div style="margin-bottom: 15px">
-              <label style="font-size: 0.8rem; color: var(--sub); display: block; margin-bottom: 5px">管理者PIN変更</label>
-              <div style="display: flex; gap: 10px">
-                <input type="number" id="newPin" placeholder="4桁">
-                <button class="btn-action" onclick="changePin()">変更</button>
+        <div>
+          <div class="card">
+            <div class="card-head">⚙️<span class="ch-title">管理者設定</span></div>
+            <div class="card-body">
+              <div style="margin-bottom: 15px">
+                <label style="font-size: 0.8rem; color: var(--sub); display: block; margin-bottom: 5px">管理者PIN変更</label>
+                <div style="display: flex; gap: 10px">
+                  <input type="number" id="newPin" placeholder="4桁">
+                  <button class="btn-action" onclick="changePin()">変更</button>
+                </div>
+              </div>
+              <div style="margin-bottom: 15px">
+                <button class="btn-action btn-danger" style="width: 100%" onclick="delMonthData()">
+                  🗑️ この月のデータを削除
+                </button>
+              </div>
+              <div>
+                <button class="btn-action btn-danger" style="width: 100%" onclick="resetAll()">⚠️ 全データ初期化</button>
               </div>
             </div>
-            <div style="margin-bottom: 15px">
-              <button class="btn-action btn-danger" style="width: 100%" onclick="delMonthData()">
-                🗑️ この月のデータを削除
-              </button>
-            </div>
-            <div>
-              <button class="btn-action btn-danger" style="width: 100%" onclick="resetAll()">⚠️ 全データ初期化</button>
+          </div>
+
+          <!-- 作業マスター管理（管理者設定の直下） -->
+          <div class="card" style="margin-top:12px">
+            <div class="card-head">🛠️<span class="ch-title">作業マスター管理</span></div>
+            <div class="card-body">
+              <div style="font-size:.8rem;color:var(--sub);line-height:1.6;margin-bottom:10px">
+                作業予定スケジュールで選択する作業内容を登録します。よく行う作業を事前に追加しておくと、毎日の作業計画作成が簡単になります。
+              </div>
+              <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+                <input type="text" id="newTaskMaster" placeholder="例：草取り、収穫、選果作業" style="flex:1;min-width:140px">
+                <button class="btn-action" onclick="addTaskMaster()">➕ 追加</button>
+              </div>
+              <div id="taskMasterList"></div>
             </div>
           </div>
         </div>
@@ -1321,6 +1346,13 @@
       let submissions = JSON.parse(localStorage.getItem('sf_subs')) || [];
       let invoiceArchive = JSON.parse(localStorage.getItem('sf_invoice_archive') || '[]');
       if (!Array.isArray(invoiceArchive)) invoiceArchive = [];
+      // 作業マスター（プルダウン選択用）
+      let taskMasters = JSON.parse(localStorage.getItem('sf_task_masters') || '[]');
+      if (!Array.isArray(taskMasters)) taskMasters = [];
+      // 月単位の作業メモ（簡易やることリスト）
+      // 形式: { "2026-05": [{ id, text, done, timestamp }, ...], ... }
+      let monthlyMemos = JSON.parse(localStorage.getItem('sf_monthly_memos') || '{}');
+      if (typeof monthlyMemos !== 'object' || monthlyMemos === null || Array.isArray(monthlyMemos)) monthlyMemos = {};
       let adminPin = localStorage.getItem('sf_pin') || '1234';
       let selfStaffName = localStorage.getItem('sf_self_name') || '';
       let adminUnlocked = localStorage.getItem('sf_show_admin_tab') === '1';
@@ -1373,6 +1405,8 @@
         localStorage.setItem('sf_actual_works', JSON.stringify(actualWorks));
         localStorage.setItem('sf_subs', JSON.stringify(submissions));
         localStorage.setItem('sf_invoice_archive', JSON.stringify(invoiceArchive));
+        localStorage.setItem('sf_task_masters', JSON.stringify(taskMasters));
+        localStorage.setItem('sf_monthly_memos', JSON.stringify(monthlyMemos));
         localStorage.setItem('sf_pin', adminPin);
         localStorage.setItem('sf_staff_seed_version', staffSeedVersion || STAFF_SEED_VERSION);
         localStorage.setItem('sf_input_mode', currentInputMode || 'shift');
@@ -3078,6 +3112,200 @@
         renderPrintTools();
         renderInvoiceArchive();
         renderStaffManagement();
+        renderWorkSchedule();
+        renderTaskMasterList();
+      }
+
+      // ===== 作業マスター管理 =====
+      function renderTaskMasterList() {
+        const el = document.getElementById('taskMasterList');
+        if (!el) return;
+        if (!taskMasters.length) {
+          el.innerHTML = '<div style="font-size:.85rem;color:var(--sub);text-align:center;padding:14px;background:var(--gb);border-radius:10px">まだ作業内容が登録されていません。上の入力欄から追加してください。</div>';
+          return;
+        }
+        el.innerHTML = `
+          <div style="display:flex;flex-direction:column;gap:6px">
+            ${taskMasters.map((task, index) => `
+              <div style="border:1px solid var(--bd);border-radius:8px;padding:8px 10px;background:#fafcfb;display:flex;justify-content:space-between;align-items:center;gap:8px">
+                <div style="font-weight:800;color:var(--gd);flex:1;font-size:.88rem">🔧 ${escapeHtml(task)}</div>
+                <div style="display:flex;gap:4px;flex-shrink:0">
+                  <button class="btn-action" style="padding:3px 8px;font-size:.7rem" onclick="renameTaskMaster(${index})">変更</button>
+                  <button class="btn-action btn-danger" style="padding:3px 8px;font-size:.7rem" onclick="deleteTaskMaster(${index})">削除</button>
+                </div>
+              </div>`).join('')}
+          </div>
+          <div style="margin-top:8px;font-size:.7rem;color:var(--sub);text-align:right">登録 ${taskMasters.length} 件</div>`;
+      }
+
+      function addTaskMaster() {
+        const input = document.getElementById('newTaskMaster');
+        const name = String(input.value || '').trim();
+        if (!name) {
+          showToast('作業名を入力してください');
+          return;
+        }
+        if (taskMasters.includes(name)) {
+          showToast('同じ作業が既に登録されています');
+          return;
+        }
+        taskMasters.push(name);
+        saveDB();
+        input.value = '';
+        renderTaskMasterList();
+        renderWorkSchedule();
+        showToast(`「${name}」を追加しました`);
+      }
+
+      function renameTaskMaster(index) {
+        const oldName = taskMasters[index];
+        if (!oldName) return;
+        const next = prompt(`「${oldName}」の新しい名前を入力してください`, oldName);
+        if (next === null) return;
+        const newName = String(next).trim();
+        if (!newName) {
+          showToast('作業名を入力してください');
+          return;
+        }
+        if (newName === oldName) return;
+        if (taskMasters.includes(newName)) {
+          showToast('同じ作業が既に登録されています');
+          return;
+        }
+        taskMasters[index] = newName;
+        saveDB();
+        renderTaskMasterList();
+        renderWorkSchedule();
+        showToast('作業名を変更しました');
+      }
+
+      function deleteTaskMaster(index) {
+        const target = taskMasters[index];
+        if (!target) return;
+        if (!confirm(`「${target}」を削除しますか？`)) return;
+        taskMasters.splice(index, 1);
+        saveDB();
+        renderTaskMasterList();
+        renderWorkSchedule();
+        showToast('作業を削除しました');
+      }
+
+      // ===== 月間やることメモ（簡易版） =====
+      function getMonthMemoKey(y, m) {
+        return `${y}-${String(m).padStart(2, '0')}`;
+      }
+
+      function renderWorkSchedule() {
+        const el = document.getElementById('admWorkSchedule');
+        if (!el) return;
+
+        const monthKey = getMonthMemoKey(viewYear, viewMonth);
+        const memos = monthlyMemos[monthKey] || [];
+        const doneCount = memos.filter((m) => m.done).length;
+
+        // やることリスト HTML
+        const memosHtml = memos.length
+          ? memos.map((memo) => `
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:${memo.done ? '#f0f7f4' : '#fff'};border:1px solid var(--bd);border-radius:8px;margin-bottom:6px">
+                <input type="checkbox" ${memo.done ? 'checked' : ''} onchange="toggleMonthMemoDone('${memo.id}')" style="width:18px;height:18px;cursor:pointer;flex-shrink:0;accent-color:var(--gg)">
+                <div style="flex:1;font-size:.88rem;color:${memo.done ? 'var(--sub)' : 'var(--text)'};${memo.done ? 'text-decoration:line-through' : ''};word-break:break-word">${escapeHtml(memo.text)}</div>
+                <button onclick="deleteMonthMemo('${memo.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:2px 6px;flex-shrink:0">✕</button>
+              </div>
+            `).join('')
+          : '<div style="font-size:.8rem;color:var(--sub);text-align:center;padding:14px;background:var(--gb);border-radius:8px">やることはまだありません。下の入力欄から追加してください。</div>';
+
+        // 作業マスターからの「クイック追加」ボタン群
+        const quickAddHtml = taskMasters.length
+          ? `<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--bd)">
+              <div style="font-size:.72rem;color:var(--sub);margin-bottom:6px">📌 作業マスターからクイック追加：</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px">
+                ${taskMasters.map((t) => `<button onclick="addMonthMemoFromMaster('${escapeHtml(t).replace(/'/g, '&#39;')}')" style="padding:3px 8px;font-size:.72rem;background:#fff;border:1px solid var(--gg);color:var(--gg);border-radius:14px;cursor:pointer">+ ${escapeHtml(t)}</button>`).join('')}
+              </div>
+            </div>`
+          : '';
+
+        el.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;background:var(--gp);border-radius:10px;margin-bottom:12px">
+            <div>
+              <div style="font-weight:900;color:var(--gd);font-size:.95rem">📝 ${viewYear}年${viewMonth}月のやることメモ</div>
+              <div style="font-size:.72rem;color:var(--sub)">完了 ${doneCount} / ${memos.length} 件</div>
+            </div>
+            ${memos.length > 0 ? `<button class="btn-action btn-danger" style="padding:4px 8px;font-size:.7rem" onclick="clearMonthMemos()">🗑️ 全削除</button>` : ''}
+          </div>
+
+          <div style="margin-bottom:10px">
+            ${memosHtml}
+          </div>
+
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <input type="text" id="newMonthMemo" placeholder="例：苗の発注、ハウス点検、農薬の在庫確認" style="flex:1;min-width:140px;padding:8px" onkeydown="if(event.key==='Enter')addMonthMemo()">
+            <button class="btn-action" style="padding:8px 14px;font-size:.85rem" onclick="addMonthMemo()">➕ 追加</button>
+          </div>
+
+          ${quickAddHtml}
+        `;
+      }
+
+      function addMonthMemo() {
+        const input = document.getElementById('newMonthMemo');
+        const text = String(input.value || '').trim();
+        if (!text) {
+          showToast('やることを入力してください');
+          return;
+        }
+        const monthKey = getMonthMemoKey(viewYear, viewMonth);
+        if (!monthlyMemos[monthKey]) monthlyMemos[monthKey] = [];
+        monthlyMemos[monthKey].push({
+          id: `memo_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          text,
+          done: false,
+          timestamp: new Date().toISOString(),
+        });
+        saveDB();
+        input.value = '';
+        renderWorkSchedule();
+      }
+
+      function addMonthMemoFromMaster(taskName) {
+        const monthKey = getMonthMemoKey(viewYear, viewMonth);
+        if (!monthlyMemos[monthKey]) monthlyMemos[monthKey] = [];
+        monthlyMemos[monthKey].push({
+          id: `memo_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          text: taskName,
+          done: false,
+          timestamp: new Date().toISOString(),
+        });
+        saveDB();
+        renderWorkSchedule();
+        showToast(`「${taskName}」を追加しました`);
+      }
+
+      function toggleMonthMemoDone(memoId) {
+        const monthKey = getMonthMemoKey(viewYear, viewMonth);
+        const list = monthlyMemos[monthKey] || [];
+        const target = list.find((m) => m.id === memoId);
+        if (!target) return;
+        target.done = !target.done;
+        saveDB();
+        renderWorkSchedule();
+      }
+
+      function deleteMonthMemo(memoId) {
+        const monthKey = getMonthMemoKey(viewYear, viewMonth);
+        if (!monthlyMemos[monthKey]) return;
+        monthlyMemos[monthKey] = monthlyMemos[monthKey].filter((m) => m.id !== memoId);
+        if (!monthlyMemos[monthKey].length) delete monthlyMemos[monthKey];
+        saveDB();
+        renderWorkSchedule();
+      }
+
+      function clearMonthMemos() {
+        if (!confirm(`${viewYear}年${viewMonth}月のやることメモをすべて削除しますか？`)) return;
+        const monthKey = getMonthMemoKey(viewYear, viewMonth);
+        delete monthlyMemos[monthKey];
+        saveDB();
+        renderWorkSchedule();
+        showToast('今月のメモを削除しました');
       }
 
       function changePubMonth(v) {
