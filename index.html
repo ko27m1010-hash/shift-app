@@ -1102,20 +1102,24 @@
       </div>
     </div></div>
           </div>
-          <div class="card">
-            <div class="card-head">💴<span class="ch-title">簡易請求・実績管理</span></div>
-            <div class="card-body" id="admBilling"><div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この月は 0 件の出勤予定があります。</div></div>
-          </div>
-          <div class="card">
-            <div class="card-head">🧾<span class="ch-title">清算書・請求控え</span></div>
-            <div class="card-body">
-              <div style="font-size:.8rem;color:var(--sub);line-height:1.7;margin-bottom:10px">スタッフへ渡す確認用の清算書兼請求内容確認書と、農場で保管する控えを印刷・保存できます。領収書は別途手書き運用のため、本システムでは作成しません。</div>
-              <div id="admPrintTools"><div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この月の清算対象スタッフが表示されると、ここから印刷・保管できます。</div></div>
-              <div style="height:1px;background:var(--bd);margin:14px 0"></div>
-              <div style="font-size:.8rem;font-weight:800;color:var(--gd);margin-bottom:8px">🗂️ 農場保管用の請求控え</div>
-              <div id="admInvoiceArchive"><div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この端末に保管した請求控えがここに表示されます。</div></div>
-            </div>
-          </div>
+        </div>
+      </div>
+
+      <!-- 簡易請求・実績管理（フル幅で横並び表示） -->
+      <div class="card" style="margin-top:15px">
+        <div class="card-head">💴<span class="ch-title">簡易請求・実績管理</span></div>
+        <div class="card-body" id="admBilling"><div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この月は 0 件の出勤予定があります。</div></div>
+      </div>
+
+      <!-- 清算書・請求控え（フル幅で横並び表示） -->
+      <div class="card" style="margin-top:15px">
+        <div class="card-head">🧾<span class="ch-title">清算書・請求控え</span></div>
+        <div class="card-body">
+          <div style="font-size:.8rem;color:var(--sub);line-height:1.7;margin-bottom:10px">スタッフへ渡す確認用の清算書兼請求内容確認書と、農場で保管する控えを印刷・保存できます。領収書は別途手書き運用のため、本システムでは作成しません。</div>
+          <div id="admPrintTools"><div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この月の清算対象スタッフが表示されると、ここから印刷・保管できます。</div></div>
+          <div style="height:1px;background:var(--bd);margin:14px 0"></div>
+          <div style="font-size:.8rem;font-weight:800;color:var(--gd);margin-bottom:8px">🗂️ 農場保管用の請求控え</div>
+          <div id="admInvoiceArchive"><div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この端末に保管した請求控えがここに表示されます。</div></div>
         </div>
       </div>
 
@@ -2611,7 +2615,7 @@
         const monthLabel = `${viewYear}年${viewMonth}月`;
         const grandTotal = currentBillingRows.reduce((sum, row) => sum + Number(row.monthlyTotal || 0), 0);
         el.innerHTML = `
-          <div style="display:grid;gap:10px">
+          <div style="display:flex;flex-direction:column;gap:12px">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--gp);padding:10px 12px;border-radius:10px">
               <div>
                 <div style="font-weight:900;color:var(--gd)">${escapeHtml(monthLabel)} の帳票</div>
@@ -2622,20 +2626,24 @@
                 <button class="btn-action" style="background:#fff;color:var(--gg);border:1px solid var(--gg)" onclick="saveAllInvoiceSnapshots()">🗂️ この月を保管</button>
               </div>
             </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">
             ${currentBillingRows.map((row, index) => `
               <div style="border:1px solid var(--bd);border-radius:10px;padding:10px;background:#fafcfb">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
-                  <strong style="color:var(--gd)">${escapeHtml(row.name)}</strong>
-                  <span style="font-size:.8rem;color:var(--sub)">実績 ${row.actualDays}日 / ${formatHours(row.actualHours)} / ${formatYen(row.monthlyTotal)}</span>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+                  <strong style="color:var(--gd);font-size:.95rem">${escapeHtml(row.name)}</strong>
+                  <span style="font-size:.7rem;color:var(--sub)">${row.actualDays}日/${formatHours(row.actualHours)}</span>
                 </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-                  <div style="font-size:.78rem;color:var(--sub)">希望 ${row.plannedDays}日・給与 ${formatYen(row.wageTotal)}・交通費 ${formatYen(row.transportTotal)}</div>
-                  <div style="display:flex;gap:8px;flex-wrap:wrap">
-                    <button class="btn-action" style="padding:6px 10px;font-size:.78rem" onclick="printSettlementSlipByIndex(${index})">印刷</button>
-                    <button class="btn-action" style="padding:6px 10px;font-size:.78rem;background:#fff;color:var(--gg);border:1px solid var(--gg)" onclick="saveInvoiceSnapshotByIndex(${index})">保管</button>
-                  </div>
+                <div style="font-size:.75rem;color:var(--sub);line-height:1.6;background:#fff;border-radius:6px;padding:8px;margin-bottom:8px">
+                  <div>給与：<strong style="color:var(--gd)">${formatYen(row.wageTotal)}</strong></div>
+                  <div>交通費：<strong style="color:var(--gd)">${formatYen(row.transportTotal)}</strong></div>
+                  <div style="margin-top:4px;padding-top:4px;border-top:1px solid var(--bd);font-size:.82rem">精算額：<strong style="color:var(--orange);font-size:1rem">${formatYen(row.monthlyTotal)}</strong></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                  <button class="btn-action" style="padding:6px 10px;font-size:.78rem" onclick="printSettlementSlipByIndex(${index})">🖨️ 印刷</button>
+                  <button class="btn-action" style="padding:6px 10px;font-size:.78rem;background:#fff;color:var(--gg);border:1px solid var(--gg)" onclick="saveInvoiceSnapshotByIndex(${index})">🗂️ 保管</button>
                 </div>
               </div>`).join('')}
+            </div>
           </div>`;
       }
 
@@ -2671,7 +2679,7 @@
           const total = monthEntries.reduce((sum, item) => sum + Number(item.monthlyTotal || 0), 0);
           el.innerHTML = `
             ${tabsHtml}
-            <div style="display:grid;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:12px">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:#fff8e8;padding:10px 12px;border-radius:10px">
                 <div>
                   <div style="font-weight:900;color:var(--orange)">${viewYear}年${viewMonth}月 の保管控え</div>
@@ -2679,21 +2687,27 @@
                 </div>
                 <button class="btn-action btn-danger" style="padding:6px 10px;font-size:.78rem" onclick="deleteMonthArchivedInvoices()">この月の控えを削除</button>
               </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">
               ${monthEntries.map((entry) => {
                 const savedAt = entry.savedAt ? new Date(entry.savedAt).toLocaleString('ja-JP') : '保存日時なし';
                 return `
                   <div style="border:1px solid var(--bd);border-radius:10px;padding:10px;background:#fff">
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
-                      <strong style="color:var(--gd)">${escapeHtml(entry.name)}</strong>
-                      <span style="font-size:.8rem;color:var(--sub)">${formatYen(entry.monthlyTotal)} / 保存 ${escapeHtml(savedAt)}</span>
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+                      <strong style="color:var(--gd);font-size:.95rem">${escapeHtml(entry.name)}</strong>
+                      <span style="font-size:.85rem;color:var(--orange);font-weight:800">${formatYen(entry.monthlyTotal)}</span>
                     </div>
-                    <div style="font-size:.78rem;color:var(--sub);margin-bottom:8px">出勤 ${Number(entry.actualDays || 0)}日 ・ 実働 ${formatHours(entry.actualHours)} ・ 交通費 ${formatYen(entry.transportTotal)}</div>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap">
-                      <button class="btn-action" style="padding:6px 10px;font-size:.78rem" onclick="printArchivedInvoice('${entry.id}')">再印刷</button>
-                      <button class="btn-action btn-danger" style="padding:6px 10px;font-size:.78rem" onclick="deleteArchivedInvoice('${entry.id}')">削除</button>
+                    <div style="font-size:.72rem;color:var(--sub);line-height:1.6;background:#fafcfb;border-radius:6px;padding:8px;margin-bottom:8px">
+                      <div>出勤：<strong style="color:var(--gd)">${Number(entry.actualDays || 0)}日</strong> / ${formatHours(entry.actualHours)}</div>
+                      <div>交通費：${formatYen(entry.transportTotal)}</div>
+                      <div style="font-size:.68rem;margin-top:4px;color:#888">保存：${escapeHtml(savedAt)}</div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                      <button class="btn-action" style="padding:6px 10px;font-size:.78rem" onclick="printArchivedInvoice('${entry.id}')">🖨️ 再印刷</button>
+                      <button class="btn-action btn-danger" style="padding:6px 10px;font-size:.78rem" onclick="deleteArchivedInvoice('${entry.id}')">🗑️ 削除</button>
                     </div>
                   </div>`;
               }).join('')}
+              </div>
             </div>`;
         } else {
           // === 過去データ表示（月別グループ化） ===
@@ -2990,29 +3004,31 @@
         const grandTotal = billingRows.reduce((sum, row) => sum + row.monthlyTotal, 0);
         document.getElementById('admBilling').innerHTML = billingRows.length
           ? `
-            <div style="display:grid;gap:10px">
+            <div style="display:flex;flex-direction:column;gap:12px">
               <div style="display:flex;justify-content:space-between;align-items:center;background:var(--gp);padding:10px 12px;border-radius:10px;font-weight:800;color:var(--gd)">
-                <span>月間実績合計</span>
+                <span>月間実績合計 (${billingRows.length}名)</span>
                 <span>${formatYen(grandTotal)}</span>
               </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">
               ${billingRows
                 .map(
                   (row) => `
                     <div style="border:1px solid var(--bd);border-radius:10px;padding:10px;background:#fafcfb">
-                      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px">
-                        <strong style="color:var(--gd)">${row.name}</strong>
-                        <span style="font-size:.82rem;color:var(--sub)">予定 ${row.plannedDays}日 / 実績 ${row.actualDays}日</span>
+                      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+                        <strong style="color:var(--gd);font-size:.95rem">${escapeHtml(row.name)}</strong>
+                        <span style="font-size:.7rem;color:var(--sub)">予定${row.plannedDays}日/実績${row.actualDays}日</span>
                       </div>
-                      <div style="font-size:.8rem;color:var(--sub);line-height:1.7">
-                        <div>時給：${formatYen(row.hourlyRate)} / 時</div>
-                        <div>実働：${formatHours(row.actualHours)}</div>
-                        <div>交通費：${formatYen(row.dailyTransport)} / 日 × ${row.actualDays}日 = ${formatYen(row.transportTotal)}</div>
-                        <div>給与小計：${formatYen(row.wageTotal)}</div>
-                        <div>月間精算額：<strong style="color:var(--gd)">${formatYen(row.monthlyTotal)}</strong></div>
+                      <div style="font-size:.75rem;color:var(--sub);line-height:1.7;background:#fff;border-radius:6px;padding:8px">
+                        <div>時給：<strong style="color:var(--gd)">${formatYen(row.hourlyRate)}</strong></div>
+                        <div>実働：<strong style="color:var(--gd)">${formatHours(row.actualHours)}</strong></div>
+                        <div>交通費：<strong style="color:var(--gd)">${formatYen(row.transportTotal)}</strong></div>
+                        <div>給与：<strong style="color:var(--gd)">${formatYen(row.wageTotal)}</strong></div>
+                        <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--bd);font-size:.85rem">精算額：<strong style="color:var(--orange);font-size:1rem">${formatYen(row.monthlyTotal)}</strong></div>
                       </div>
                     </div>`,
                 )
                 .join('')}
+              </div>
             </div>`
           : `<div style="font-size:.85rem;color:var(--sub);text-align:center;padding:10px">この月は予定・実績データがありません。時給設定と勤務実績入力後、ここに精算額が表示されます。</div>`;
 
